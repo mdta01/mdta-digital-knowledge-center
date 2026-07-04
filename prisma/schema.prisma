@@ -1,0 +1,227 @@
+// Prisma schema for Perpustakaan Digital MDTA MIFTAHUL ULUM 01
+// Repository Pattern is used in code so the datasource can be swapped to Supabase/PostgreSQL
+// by changing only the datasource provider + connection string.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ AUTH & USERS ============
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  name        String
+  role        String   @default("EDITOR") // SUPER_ADMIN | ADMIN | EDITOR
+  avatar      String?
+  isActive    Boolean  @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  activityLogs ActivityLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+// ============ CATEGORIES ============
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  icon        String?  // Lucide icon name
+  color       String?  // hex color for UI accent
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  books Book[]
+
+  @@index([slug])
+}
+
+// ============ AUTHORS ============
+
+model Author {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  bio         String?
+  photo       String?
+  birthYear   Int?
+  deathYear   Int?
+  nationality String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  books Book[]
+
+  @@index([slug])
+}
+
+// ============ TAGS ============
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  books Book[]
+}
+
+// ============ BOOKS ============
+
+model Book {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  description   String?
+  content       String?  // rich text HTML from TipTap (kitab content)
+  coverImage    String?
+  pages         Int?
+  language      String   @default("id") // id | ar | en
+  isbn          String?
+  publishedYear Int?
+  publisher     String?
+  status        String   @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+  featured      Boolean  @default(false)
+  views         Int      @default(0)
+  downloads     Int      @default(0)
+  toc           String?  // JSON string for table of contents
+  seoTitle      String?
+  seoDescription String?
+  seoKeywords   String?
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  authorId String
+  author   Author @relation(fields: [authorId], references: [id])
+
+  tags       Tag[]
+  files      BookFile[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  @@index([slug])
+  @@index([status])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([featured])
+}
+
+// ============ BOOK FILES ============
+
+model BookFile {
+  id        String   @id @default(cuid())
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  format    String   // PDF | EPUB | DOCX
+  url       String
+  filename  String
+  size      Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([bookId])
+}
+
+// ============ PAGES (About, Contact, Privacy, Terms) ============
+
+model Page {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  content       String   // rich text HTML
+  excerpt       String?
+  seoTitle      String?
+  seoDescription String?
+  status        String   @default("PUBLISHED") // DRAFT | PUBLISHED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@index([slug])
+}
+
+// ============ SETTINGS (singleton rows by key) ============
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String // JSON-encoded value
+  type  String @default("string") // string | json | image | color
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============ UPLOADS (file registry) ============
+
+model Upload {
+  id        String   @id @default(cuid())
+  filename  String
+  originalName String
+  mimeType  String
+  size      Int
+  url       String
+  path      String
+  category  String?  // cover | pdf | epub | image | other
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([category])
+}
+
+// ============ ACTIVITY LOGS ============
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String   // CREATE | UPDATE | DELETE | LOGIN | LOGOUT | PUBLISH
+  entity    String   // Book | Author | Category | Page | User | Setting
+  entityId  String?
+  metadata  String?  // JSON string
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+// ============ CONTACT MESSAGES ============
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isRead])
+  @@index([createdAt])
+}
