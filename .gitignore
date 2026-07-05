@@ -57,6 +57,12 @@ agent-ctx/
 local-*
 prompt
 test
+tool-results/
+examples/
+mini-services/
+download/
+Caddyfile
+worklog.md
 
 # database (local SQLite)
 /db/*.db
