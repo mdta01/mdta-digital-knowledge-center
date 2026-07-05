@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pageRepository, pageService } from "@/lib/repositories";
+import { pageRepository } from "@/lib/repositories";
+import { pageService } from "@/lib/services";
 import { updatePageSchema } from "@/lib/validators";
 import { withAdmin } from "@/lib/auth/with-admin";
 

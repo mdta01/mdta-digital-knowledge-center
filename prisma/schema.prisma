@@ -1,12 +1,17 @@
-// Prisma schema for Perpustakaan Digital MDTA MIFTAHUL ULUM 01
+// Prisma schema for MDTA Digital Knowledge Center
 // Repository Pattern is used in code so the datasource can be swapped to Supabase/PostgreSQL
 // by changing only the datasource provider + connection string.
+//
+// For local development (SQLite):  provider = "sqlite",   DATABASE_URL=file:./db/custom.db
+// For Vercel/Supabase (Postgres):   provider = "postgresql", DATABASE_URL=postgresql://...
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
+  // Use SQLite for local dev (filesystem). For Vercel/production, switch to "postgresql"
+  // and set DATABASE_URL to your Supabase/Neon/PlanetScale connection string.
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }

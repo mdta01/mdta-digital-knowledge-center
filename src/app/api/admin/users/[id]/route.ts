@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { userRepository, userService } from "@/lib/repositories";
+import { userRepository } from "@/lib/repositories";
+import { userService } from "@/lib/services";
 import { updateUserWithoutPasswordSchema } from "@/lib/validators";
 import { getSession } from "@/lib/auth/session";
 import { withAdmin } from "@/lib/auth/with-admin";

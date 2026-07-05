@@ -1,4 +1,4 @@
-import { BookOff, RefreshCw } from "lucide-react";
+import { Library, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 export const metadata = {
@@ -11,7 +11,7 @@ export default function OfflinePage() {
     <div className="min-h-screen grid place-items-center px-6 py-16 bg-gradient-to-br from-emerald-deep via-primary to-emerald-deep">
       <div className="text-center max-w-md">
         <div className="h-20 w-20 rounded-3xl bg-gold/20 backdrop-blur-md grid place-items-center mx-auto mb-6 ring-2 ring-gold/40">
-          <BookOff className="h-10 w-10 text-gold" />
+          <Library className="h-10 w-10 text-gold" />
         </div>
         <h1 className="font-serif text-3xl font-bold text-white mb-3">
           Anda Sedang Offline

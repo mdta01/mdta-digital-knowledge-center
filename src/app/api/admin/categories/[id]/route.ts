@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { categoryRepository, categoryService } from "@/lib/repositories";
+import { categoryRepository } from "@/lib/repositories";
+import { categoryService } from "@/lib/services";
 import { updateCategorySchema } from "@/lib/validators";
 import { withAdmin } from "@/lib/auth/with-admin";
 
