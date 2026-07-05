@@ -26,10 +26,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/", label: "Home", icon: BookOpen },
-  { href: "/books", label: "Koleksi Buku", icon: BookOpen },
-  { href: "/categories", label: "Kategori", icon: LayoutGrid },
+  { href: "/", label: "Beranda", icon: BookOpen },
+  { href: "/books", label: "Buku", icon: BookOpen },
+  { href: "/kitab", label: "Kitab", icon: BookOpen },
+  { href: "/artikel", label: "Artikel", icon: BookOpen },
+  { href: "/audio", label: "Audio", icon: BookOpen },
+  { href: "/video", label: "Video", icon: BookOpen },
+  { href: "/materi", label: "Materi", icon: BookOpen },
   { href: "/authors", label: "Penulis", icon: Users },
+  { href: "/categories", label: "Kategori", icon: LayoutGrid },
   { href: "/about", label: "Tentang", icon: Info },
   { href: "/contact", label: "Kontak", icon: Phone },
 ];
@@ -72,7 +77,7 @@ export function SiteHeader() {
                   MDTA MIFTAHUL ULUM 01
                 </span>
                 <span className="text-[11px] text-muted-foreground tracking-wide">
-                  Perpustakaan Digital Islami
+                  Islamic Knowledge Center
                 </span>
               </div>
             </Link>
@@ -97,19 +102,46 @@ export function SiteHeader() {
 
             {/* Search + theme + mobile */}
             <div className="flex items-center gap-1.5">
-              <form
-                onSubmit={submitSearch}
-                className="hidden md:flex relative items-center"
+              {/* Command palette trigger */}
+              <button
+                onClick={() => {
+                  // Dispatch a synthetic Ctrl+K to open CommandPalette
+                  const ev = new KeyboardEvent("keydown", {
+                    key: "k",
+                    ctrlKey: true,
+                    metaKey: true,
+                    bubbles: true,
+                  });
+                  window.dispatchEvent(ev);
+                }}
+                className="hidden md:flex items-center gap-2 h-10 px-3 rounded-full bg-background/60 border border-border/60 text-sm text-muted-foreground hover:bg-background hover:text-foreground transition-colors w-44 lg:w-60"
+                aria-label="Buka pencarian cepat (Ctrl+K)"
               >
-                <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari buku, penulis…"
-                  className="pl-9 w-44 lg:w-60 h-10 rounded-full bg-background/60 border-border/60 focus-visible:bg-background"
-                  aria-label="Cari buku"
-                />
-              </form>
+                <Search className="h-4 w-4" />
+                <span className="flex-1 text-left">Cari…</span>
+                <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">
+                  Ctrl K
+                </kbd>
+              </button>
+
+              {/* Mobile search icon (opens command palette) */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden rounded-full h-10 w-10"
+                onClick={() => {
+                  const ev = new KeyboardEvent("keydown", {
+                    key: "k",
+                    ctrlKey: true,
+                    metaKey: true,
+                    bubbles: true,
+                  });
+                  window.dispatchEvent(ev);
+                }}
+                aria-label="Cari"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
 
               <ThemeToggle />
 

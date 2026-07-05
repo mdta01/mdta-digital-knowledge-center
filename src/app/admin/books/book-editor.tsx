@@ -37,12 +37,23 @@ import {
   Eye,
   Archive,
   PencilLine,
+  History,
+  RotateCcw,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { slugify } from "@/lib/slug";
 import { UploadButton } from "@/components/admin/upload-button";
-import { apiFetch, formatFileSize } from "@/components/admin/utils";
+import { apiFetch, formatFileSize, formatDateTime } from "@/components/admin/utils";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 type FormValues = z.infer<typeof createBookSchema>;
 
@@ -162,6 +173,84 @@ export function BookEditor({ book, categories, authors, mode }: BookEditorProps)
   const contentValue = watch("content");
   const languageValue = watch("language");
   const slugTouched = React.useRef(!!book?.slug);
+
+  // --- Auto-save state ---
+  const [autoSaveTime, setAutoSaveTime] = React.useState<Date | null>(null);
+  const [autoSaving, setAutoSaving] = React.useState(false);
+  const formDirtyRef = React.useRef(false);
+  const lastSaveTimeRef = React.useRef<Date | null>(null);
+  const lastRevisionTimeRef = React.useRef<Date | null>(null);
+
+  // Track form dirty state via watch subscription
+  React.useEffect(() => {
+    const sub = watch(() => {
+      formDirtyRef.current = true;
+    });
+    return () => sub.unsubscribe();
+  }, [watch]);
+
+  // Auto-save every 30s if dirty + in edit mode + has title
+  React.useEffect(() => {
+    if (!isEdit || !book) return;
+    const interval = setInterval(async () => {
+      if (!formDirtyRef.current) return;
+      const values = watch();
+      // Don't auto-save if status is DRAFT and title is empty
+      if (values.status === "DRAFT" && !values.title?.trim()) return;
+      setAutoSaving(true);
+      try {
+        const payload = {
+          ...values,
+          description: values.description || null,
+          content: values.content || null,
+          coverImage: values.coverImage || "",
+          isbn: values.isbn || null,
+          publisher: values.publisher || null,
+          toc: values.toc || null,
+          seoTitle: values.seoTitle || null,
+          seoDescription: values.seoDescription || null,
+          seoKeywords: values.seoKeywords || null,
+          pages: values.pages ?? null,
+          publishedYear: values.publishedYear ?? null,
+        };
+        await apiFetch(`/api/admin/books/${book.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        formDirtyRef.current = false;
+        lastSaveTimeRef.current = new Date();
+        setAutoSaveTime(new Date());
+      } catch {
+        // silent fail on auto-save
+      } finally {
+        setAutoSaving(false);
+      }
+    }, 30000); // 30 seconds
+    return () => clearInterval(interval);
+  }, [isEdit, book, watch]);
+
+  // Auto-save revision snapshot every 5 minutes
+  React.useEffect(() => {
+    if (!isEdit || !book) return;
+    const interval = setInterval(async () => {
+      const values = watch();
+      if (!values.title?.trim()) return;
+      try {
+        await apiFetch(`/api/admin/books/${book.id}/revisions`, {
+          method: "POST",
+          body: JSON.stringify({
+            content: values.content || "",
+            title: values.title,
+            message: "Auto-saved revision",
+          }),
+        });
+        lastRevisionTimeRef.current = new Date();
+      } catch {
+        // silent fail
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+    return () => clearInterval(interval);
+  }, [isEdit, book, watch]);
 
   React.useEffect(() => {
     if (!slugTouched.current && titleValue) {
@@ -336,6 +425,24 @@ export function BookEditor({ book, categories, authors, mode }: BookEditorProps)
               </>
             )}
           </Button>
+          {isEdit && (
+            <div className="hidden sm:flex items-center text-[11px] text-muted-foreground gap-1.5 ml-2">
+              {autoSaving ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" /> Menyimpan otomatis…
+                </>
+              ) : autoSaveTime ? (
+                <>
+                  <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                  Tersimpan otomatis {autoSaveTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                </>
+              ) : (
+                <>
+                  <Clock className="h-3 w-3" /> Auto-save aktif
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -356,6 +463,11 @@ export function BookEditor({ book, categories, authors, mode }: BookEditorProps)
           <TabsTrigger value="seo" className="rounded-xl gap-2">
             <SearchIcon className="h-4 w-4" /> SEO
           </TabsTrigger>
+          {isEdit && (
+            <TabsTrigger value="revisions" className="rounded-xl gap-2">
+              <History className="h-4 w-4" /> Revisi
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Konten */}
@@ -866,6 +978,17 @@ export function BookEditor({ book, categories, authors, mode }: BookEditorProps)
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Revisions */}
+        {isEdit && book && (
+          <TabsContent value="revisions">
+            <RevisionsPanel bookId={book.id} onRestore={(content) => {
+              setValue("content", content, { shouldValidate: true });
+              formDirtyRef.current = true;
+              toast.success("Konten dipulihkan dari revisi. Jangan lupa simpan perubahan.");
+            }} />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Sticky save bar */}
@@ -889,5 +1012,168 @@ export function BookEditor({ book, categories, authors, mode }: BookEditorProps)
         </div>
       </div>
     </div>
+  );
+}
+
+// --- Revisions Panel ---
+interface RevisionItem {
+  id: string;
+  title: string;
+  content: string;
+  message?: string | null;
+  userId: string;
+  createdAt: string;
+}
+
+function RevisionsPanel({
+  bookId,
+  onRestore,
+}: {
+  bookId: string;
+  onRestore: (content: string) => void;
+}) {
+  const [revisions, setRevisions] = React.useState<RevisionItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [viewing, setViewing] = React.useState<RevisionItem | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ data: RevisionItem[] }>(`/api/admin/revisions?bookId=${bookId}&limit=50`);
+      setRevisions(res.data ?? []);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, [bookId]);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Hapus revisi ini?")) return;
+    try {
+      await apiFetch(`/api/admin/revisions/${id}`, { method: "DELETE" });
+      toast.success("Revisi dihapus");
+      void load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Gagal menghapus");
+    }
+  };
+
+  return (
+    <Card className="glass rounded-3xl border-border/60">
+      <CardHeader className="flex-row items-center justify-between">
+        <CardTitle className="font-serif text-lg flex items-center gap-2">
+          <History className="h-5 w-5 text-primary" /> Riwayat Revisi
+        </CardTitle>
+        <Button variant="outline" size="sm" onClick={() => void load()} className="rounded-full">
+          Muat ulang
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="py-8 flex items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : revisions.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            Belum ada revisi tersimpan. Revisi otomatis dibuat setiap 5 menit saat mengedit.
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+            {revisions.map((r) => (
+              <div
+                key={r.id}
+                className="flex items-start gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/60"
+              >
+                <div className="h-9 w-9 rounded-xl bg-primary/10 grid place-items-center shrink-0">
+                  <History className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">
+                    {r.title}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {formatDateTime(r.createdAt)}
+                  </div>
+                  {r.message && (
+                    <Badge variant="secondary" className="mt-1.5 text-[10px] py-0 px-1.5">
+                      {r.message}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => setViewing(r)}
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Lihat
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => {
+                      onRestore(r.content);
+                    }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Restore
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => void handleDelete(r.id)}
+                    aria-label="Hapus revisi"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+
+      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              {viewing?.title}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              {viewing && formatDateTime(viewing.createdAt)}
+              {viewing?.message && ` · ${viewing.message}`}
+            </p>
+          </DialogHeader>
+          <div
+            className="flex-1 overflow-y-auto prose prose-sm max-w-none p-4 rounded-2xl bg-secondary/30 border border-border/60"
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: viewing?.content || "" }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewing(null)}>
+              Tutup
+            </Button>
+            <Button
+              onClick={() => {
+                if (viewing) {
+                  onRestore(viewing.content);
+                  setViewing(null);
+                }
+              }}
+            >
+              <RotateCcw className="h-4 w-4" /> Restore ke Editor
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }

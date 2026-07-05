@@ -107,6 +107,14 @@ model Book {
   seoDescription String?
   seoKeywords   String?
 
+  // V2 — collection type & media-rich fields
+  collectionType String  @default("BOOK") // BOOK | KITAB | ARTICLE | VIDEO | AUDIO | DOCUMENT | DINIYAH
+  videoUrl       String?
+  audioUrl       String?
+  duration       Int?     // in seconds (for audio/video)
+  readingTime    Int?     // estimated reading minutes (auto-computed)
+  excerpt        String?  // short summary for cards
+
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
@@ -115,12 +123,16 @@ model Book {
 
   tags       Tag[]
   files      BookFile[]
+  revisions  BookRevision[]
+  bookmarks  Bookmark[]
+  progress   ReadingProgress[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   deletedAt  DateTime?
 
   @@index([slug])
   @@index([status])
+  @@index([collectionType])
   @@index([categoryId])
   @@index([authorId])
   @@index([featured])
@@ -225,3 +237,88 @@ model ContactMessage {
   @@index([isRead])
   @@index([createdAt])
 }
+
+// ============ V2: BOOK REVISIONS (history of edits) ============
+
+model BookRevision {
+  id        String   @id @default(cuid())
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  content   String   // snapshot of content at revision time
+  title     String   // snapshot of title
+  message   String?  // optional commit message
+  userId    String   // who made the change
+  createdAt DateTime @default(now())
+
+  @@index([bookId])
+  @@index([createdAt])
+}
+
+// ============ V2: BOOKMARKS (anonymous, localStorage-keyed by session) ============
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  sessionId String   // anonymous session identifier (no login required)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, sessionId])
+  @@index([sessionId])
+}
+
+// ============ V2: READING PROGRESS (per session) ============
+
+model ReadingProgress {
+  id           String   @id @default(cuid())
+  bookId       String
+  book         Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  sessionId    String
+  progress     Float    @default(0) // 0..1 (0% to 100%)
+  lastPage     Int      @default(0)
+  lastReadAt   DateTime @default(now())
+
+  @@unique([bookId, sessionId])
+  @@index([sessionId])
+}
+
+// ============ V2: NOTIFICATIONS (internal admin notifications) ============
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // UPLOAD_SUCCESS | PUBLISH_SUCCESS | BACKUP_DONE | ERROR | STORAGE_WARNING | SYSTEM
+  title     String
+  message   String
+  level     String   @default("info") // info | success | warning | error
+  isRead    Boolean  @default(false)
+  userId    String?  // optional target user; null = broadcast
+  metadata  String?  // JSON
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ============ V2: ANALYTICS EVENTS (page views, downloads, etc) ============
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  type      String   // PAGE_VIEW | DOWNLOAD | READ | SEARCH | SHARE
+  entity    String?  // Book | Page | Category | Author
+  entityId  String?
+  path      String?
+  referrer  String?
+  sessionId String?
+  country   String?
+  device    String?  // desktop | mobile | tablet
+  browser   String?
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@index([sessionId])
+}
+

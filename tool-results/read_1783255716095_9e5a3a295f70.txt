@@ -1,0 +1,894 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import * as React from "react";
+     4→     4→import { useRouter } from "next/navigation";
+     5→     5→import Link from "next/link";
+     6→     6→import { useForm, Controller } from "react-hook-form";
+     7→     7→import { zodResolver } from "@hookform/resolvers/zod";
+     8→     8→import { createBookSchema } from "@/lib/validators";
+     9→     9→import { z } from "zod";
+    10→    10→import { Button } from "@/components/ui/button";
+    11→    11→import { Input } from "@/components/ui/input";
+    12→    12→import { Textarea } from "@/components/ui/textarea";
+    13→    13→import { Label } from "@/components/ui/label";
+    14→    14→import { Switch } from "@/components/ui/switch";
+    15→    15→import { Badge } from "@/components/ui/badge";
+    16→    16→import {
+    17→    17→  Select,
+    18→    18→  SelectContent,
+    19→    19→  SelectItem,
+    20→    20→  SelectTrigger,
+    21→    21→  SelectValue,
+    22→    22→} from "@/components/ui/select";
+    23→    23→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+    24→    24→import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+    25→    25→import {
+    26→    26→  ArrowLeft,
+    27→    27→  Save,
+    28→    28→  Loader2,
+    29→    29→  BookOpen,
+    30→    30→  FileText,
+    31→    31→  Tags,
+    32→    32→  Star,
+    33→    33→  Search as SearchIcon,
+    34→    34→  Upload,
+    35→    35→  Trash2,
+    36→    36→  File as FileIcon,
+    37→    37→  Eye,
+    38→    38→  Archive,
+    39→    39→  PencilLine,
+    40→    40→} from "lucide-react";
+    41→    41→import { toast } from "sonner";
+    42→    42→import { slugify } from "@/lib/slug";
+    43→    43→import { UploadButton } from "@/components/admin/upload-button";
+    44→    44→import { apiFetch, formatFileSize } from "@/components/admin/utils";
+    45→    45→import { RichTextEditor } from "@/components/editor/rich-text-editor";
+    46→    46→
+    47→    47→type FormValues = z.infer<typeof createBookSchema>;
+    48→    48→
+    49→    49→export interface BookFile {
+    50→    50→  id?: string;
+    51→    51→  bookId?: string;
+    52→    52→  format: string;
+    53→    53→  url: string;
+    54→    54→  filename: string;
+    55→    55→  size?: number | null;
+    56→    56→  createdAt?: string;
+    57→    57→}
+    58→    58→
+    59→    59→export interface BookTag {
+    60→    60→  id: string;
+    61→    61→  name: string;
+    62→    62→  slug: string;
+    63→    63→}
+    64→    64→
+    65→    65→export interface BookData {
+    66→    66→  id: string;
+    67→    67→  title: string;
+    68→    68→  slug: string;
+    69→    69→  description?: string | null;
+    70→    70→  content?: string | null;
+    71→    71→  coverImage?: string | null;
+    72→    72→  pages?: number | null;
+    73→    73→  language: string;
+    74→    74→  isbn?: string | null;
+    75→    75→  publishedYear?: number | null;
+    76→    76→  publisher?: string | null;
+    77→    77→  status: string;
+    78→    78→  featured: boolean;
+    79→    79→  views: number;
+    80→    80→  downloads: number;
+    81→    81→  toc?: string | null;
+    82→    82→  seoTitle?: string | null;
+    83→    83→  seoDescription?: string | null;
+    84→    84→  seoKeywords?: string | null;
+    85→    85→  categoryId: string;
+    86→    86→  authorId: string;
+    87→    87→  category?: { id: string; name: string; slug: string } | null;
+    88→    88→  author?: { id: string; name: string; slug: string } | null;
+    89→    89→  tags?: BookTag[];
+    90→    90→  files?: BookFile[];
+    91→    91→}
+    92→    92→
+    93→    93→export interface OptionItem {
+    94→    94→  id: string;
+    95→    95→  name: string;
+    96→    96→  slug?: string;
+    97→    97→}
+    98→    98→
+    99→    99→interface BookEditorProps {
+   100→   100→  book?: BookData | null;
+   101→   101→  categories: OptionItem[];
+   102→   102→  authors: OptionItem[];
+   103→   103→  mode: "create" | "edit";
+   104→   104→}
+   105→   105→
+   106→   106→const LANGUAGE_OPTIONS = [
+   107→   107→  { value: "id", label: "Indonesia" },
+   108→   108→  { value: "ar", label: "Arab" },
+   109→   109→  { value: "en", label: "English" },
+   110→   110→];
+   111→   111→
+   112→   112→const STATUS_OPTIONS = [
+   113→   113→  { value: "DRAFT", label: "Draft", icon: PencilLine, color: "bg-amber-500/15 text-amber-700" },
+   114→   114→  { value: "PUBLISHED", label: "Published", icon: Eye, color: "bg-emerald-500/15 text-emerald-700" },
+   115→   115→  { value: "ARCHIVED", label: "Archived", icon: Archive, color: "bg-zinc-500/15 text-zinc-700" },
+   116→   116→];
+   117→   117→
+   118→   118→export function BookEditor({ book, categories, authors, mode }: BookEditorProps) {
+   119→   119→  const router = useRouter();
+   120→   120→  const isEdit = mode === "edit";
+   121→   121→
+   122→   122→  const {
+   123→   123→    register,
+   124→   124→    handleSubmit,
+   125→   125→    setValue,
+   126→   126→    watch,
+   127→   127→    control,
+   128→   128→    formState: { errors, isSubmitting },
+   129→   129→  } = useForm<FormValues>({
+   130→   130→    resolver: zodResolver(createBookSchema),
+   131→   131→    defaultValues: {
+   132→   132→      title: book?.title ?? "",
+   133→   133→      slug: book?.slug ?? "",
+   134→   134→      description: book?.description ?? "",
+   135→   135→      content: book?.content ?? "",
+   136→   136→      coverImage: book?.coverImage ?? "",
+   137→   137→      pages: book?.pages ?? undefined,
+   138→   138→      language: (book?.language as "id" | "ar" | "en") ?? "id",
+   139→   139→      isbn: book?.isbn ?? "",
+   140→   140→      publishedYear: book?.publishedYear ?? undefined,
+   141→   141→      publisher: book?.publisher ?? "",
+   142→   142→      status: (book?.status as "DRAFT" | "PUBLISHED" | "ARCHIVED") ?? "DRAFT",
+   143→   143→      featured: book?.featured ?? false,
+   144→   144→      toc: book?.toc ?? "",
+   145→   145→      seoTitle: book?.seoTitle ?? "",
+   146→   146→      seoDescription: book?.seoDescription ?? "",
+   147→   147→      seoKeywords: book?.seoKeywords ?? "",
+   148→   148→      categoryId: book?.categoryId ?? "",
+   149→   149→      authorId: book?.authorId ?? "",
+   150→   150→      tagIds: book?.tags?.map((t) => t.id) ?? [],
+   151→   151→    },
+   152→   152→  });
+   153→   153→
+   154→   154→  const titleValue = watch("title");
+   155→   155→  const slugValue = watch("slug");
+   156→   156→  const statusValue = watch("status");
+   157→   157→  const featuredValue = watch("featured");
+   158→   158→  const coverImageValue = watch("coverImage");
+   159→   159→  const categoryIdValue = watch("categoryId");
+   160→   160→  const authorIdValue = watch("authorId");
+   161→   161→  const tagIdsValue = watch("tagIds") ?? [];
+   162→   162→  const contentValue = watch("content");
+   163→   163→  const languageValue = watch("language");
+   164→   164→  const slugTouched = React.useRef(!!book?.slug);
+   165→   165→
+   166→   166→  React.useEffect(() => {
+   167→   167→    if (!slugTouched.current && titleValue) {
+   168→   168→      setValue("slug", slugify(titleValue), { shouldValidate: true });
+   169→   169→    }
+   170→   170→  }, [titleValue, setValue]);
+   171→   171→
+   172→   172→  // --- Tags state (comma-separated input that maps to tagIds) ---
+   173→   173→  const [tagsInput, setTagsInput] = React.useState(
+   174→   174→    book?.tags?.map((t) => t.name).join(", ") ?? ""
+   175→   175→  );
+   176→   176→  const [availableTags, setAvailableTags] = React.useState<BookTag[]>(book?.tags ?? []);
+   177→   177→
+   178→   178→  // Fetch existing tags on mount
+   179→   179→  React.useEffect(() => {
+   180→   180→    apiFetch<BookTag[]>("/api/admin/tags")
+   181→   181→      .then((tags) => setAvailableTags(tags))
+   182→   182→      .catch(() => {
+   183→   183→        // silent fail — tags are optional
+   184→   184→      });
+   185→   185→  }, []);
+   186→   186→
+   187→   187→  // --- Local book files state (newly uploaded, not yet persisted) ---
+   188→   188→  const [localFiles, setLocalFiles] = React.useState<BookFile[]>(book?.files ?? []);
+   189→   189→
+   190→   190→  const handleTagsChange = (value: string) => {
+   191→   191→    setTagsInput(value);
+   192→   192→    // Parse comma-separated names and resolve to IDs (creating new ones lazily on save)
+   193→   193→    const names = value
+   194→   194→      .split(",")
+   195→   195→      .map((n) => n.trim())
+   196→   196→      .filter(Boolean);
+   197→   197→    // For now, store names locally; resolve to IDs at submit time
+   198→   198→  };
+   199→   199→
+   200→   200→  const resolveTagIds = async (): Promise<string[]> => {
+   201→   201→    const names = tagsInput
+   202→   202→      .split(",")
+   203→   203→      .map((n) => n.trim())
+   204→   204→      .filter(Boolean);
+   205→   205→    if (names.length === 0) return [];
+   206→   206→
+   207→   207→    // Build a lookup from available tags
+   208→   208→    const byName = new Map(availableTags.map((t) => [t.name.toLowerCase(), t]));
+   209→   209→    const ids: string[] = [];
+   210→   210→    for (const name of names) {
+   211→   211→      const existing = byName.get(name.toLowerCase());
+   212→   212→      if (existing) {
+   213→   213→        ids.push(existing.id);
+   214→   214→      } else {
+   215→   215→        // Create new tag via API
+   216→   216→        try {
+   217→   217→          const created = await apiFetch<BookTag>("/api/admin/tags", {
+   218→   218→            method: "POST",
+   219→   219→            body: JSON.stringify({ name, slug: slugify(name) }),
+   220→   220→          });
+   221→   221→          ids.push(created.id);
+   222→   222→          setAvailableTags((prev) => [...prev, created]);
+   223→   223→        } catch {
+   224→   224→          // skip on failure
+   225→   225→        }
+   226→   226→      }
+   227→   227→    }
+   228→   228→    return ids;
+   229→   229→  };
+   230→   230→
+   231→   231→  const onSubmit = async (data: FormValues) => {
+   232→   232→    try {
+   233→   233→      // Resolve tags from comma-separated input
+   234→   234→      const tagIds = await resolveTagIds();
+   235→   235→      const payload = {
+   236→   236→        ...data,
+   237→   237→        description: data.description || null,
+   238→   238→        content: data.content || null,
+   239→   239→        coverImage: data.coverImage || "",
+   240→   240→        isbn: data.isbn || null,
+   241→   241→        publisher: data.publisher || null,
+   242→   242→        toc: data.toc || null,
+   243→   243→        seoTitle: data.seoTitle || null,
+   244→   244→        seoDescription: data.seoDescription || null,
+   245→   245→        seoKeywords: data.seoKeywords || null,
+   246→   246→        pages: data.pages ?? null,
+   247→   247→        publishedYear: data.publishedYear ?? null,
+   248→   248→        tagIds,
+   249→   249→      };
+   250→   250→
+   251→   251→      if (isEdit && book) {
+   252→   252→        await apiFetch(`/api/admin/books/${book.id}`, {
+   253→   253→          method: "PUT",
+   254→   254→          body: JSON.stringify(payload),
+   255→   255→        });
+   256→   256→        toast.success("Buku berhasil diperbarui");
+   257→   257→      } else {
+   258→   258→        const created = await apiFetch<{ id: string }>("/api/admin/books", {
+   259→   259→          method: "POST",
+   260→   260→          body: JSON.stringify(payload),
+   261→   261→        });
+   262→   262→        toast.success("Buku berhasil dibuat");
+   263→   263→        router.push(`/admin/books/${created.id}`);
+   264→   264→        return;
+   265→   265→      }
+   266→   266→    } catch (e: unknown) {
+   267→   267→      toast.error(e instanceof Error ? e.message : "Gagal menyimpan buku");
+   268→   268→    }
+   269→   269→  };
+   270→   270→
+   271→   271→  const handleFileUploaded = (
+   272→   272→    format: string,
+   273→   273→    url: string,
+   274→   274→    file: { filename: string; originalName: string; size: number; mimeType: string }
+   275→   275→  ) => {
+   276→   276→    setLocalFiles((prev) => [
+   277→   277→      ...prev,
+   278→   278→      {
+   279→   279→        format,
+   280→   280→        url,
+   281→   281→        filename: file.originalName,
+   282→   282→        size: file.size,
+   283→   283→      },
+   284→   284→    ]);
+   285→   285→  };
+   286→   286→
+   287→   287→  const removeLocalFile = (idx: number) => {
+   288→   288→    setLocalFiles((prev) => prev.filter((_, i) => i !== idx));
+   289→   289→  };
+   290→   290→
+   291→   291→  const StatusIcon = STATUS_OPTIONS.find((s) => s.value === statusValue)?.icon ?? Eye;
+   292→   292→
+   293→   293→  return (
+   294→   294→    <div className="space-y-6">
+   295→   295→      {/* Header */}
+   296→   296→      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+   297→   297→        <div>
+   298→   298→          <Link
+   299→   299→            href="/admin/books"
+   300→   300→            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
+   301→   301→          >
+   302→   302→            <ArrowLeft className="h-4 w-4" /> Kembali ke daftar buku
+   303→   303→          </Link>
+   304→   304→          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
+   305→   305→            <BookOpen className="h-6 w-6 text-primary" />
+   306→   306→            {isEdit ? "Edit Buku" : "Buku Baru"}
+   307→   307→          </h1>
+   308→   308→          {isEdit && book && (
+   309→   309→            <p className="text-xs text-muted-foreground mt-1 font-mono">
+   310→   310→              ID: {book.id} · {book.views} dilihat · {book.downloads} unduhan
+   311→   311→            </p>
+   312→   312→          )}
+   313→   313→        </div>
+   314→   314→        <div className="flex items-center gap-2">
+   315→   315→          <Badge variant="secondary" className={STATUS_OPTIONS.find((s) => s.value === statusValue)?.color}>
+   316→   316→            <StatusIcon className="h-3 w-3" />
+   317→   317→            {STATUS_OPTIONS.find((s) => s.value === statusValue)?.label}
+   318→   318→          </Badge>
+   319→   319→          {featuredValue && (
+   320→   320→            <Badge variant="secondary" className="bg-gold/20 text-amber-700 dark:text-amber-300">
+   321→   321→              <Star className="h-3 w-3 fill-current" /> Featured
+   322→   322→            </Badge>
+   323→   323→          )}
+   324→   324→          <Button
+   325→   325→            onClick={handleSubmit(onSubmit)}
+   326→   326→            disabled={isSubmitting}
+   327→   327→            className="rounded-full"
+   328→   328→          >
+   329→   329→            {isSubmitting ? (
+   330→   330→              <>
+   331→   331→                <Loader2 className="h-4 w-4 animate-spin" /> Menyimpan…
+   332→   332→              </>
+   333→   333→            ) : (
+   334→   334→              <>
+   335→   335→                <Save className="h-4 w-4" /> {isEdit ? "Perbarui" : "Simpan"}
+   336→   336→              </>
+   337→   337→            )}
+   338→   338→          </Button>
+   339→   339→        </div>
+   340→   340→      </div>
+   341→   341→
+   342→   342→      <Tabs defaultValue="content" className="space-y-6">
+   343→   343→        <TabsList className="w-full justify-start overflow-x-auto h-auto py-1 rounded-2xl">
+   344→   344→          <TabsTrigger value="content" className="rounded-xl gap-2">
+   345→   345→            <BookOpen className="h-4 w-4" /> Konten
+   346→   346→          </TabsTrigger>
+   347→   347→          <TabsTrigger value="files" className="rounded-xl gap-2">
+   348→   348→            <FileText className="h-4 w-4" /> File Buku
+   349→   349→          </TabsTrigger>
+   350→   350→          <TabsTrigger value="meta" className="rounded-xl gap-2">
+   351→   351→            <Tags className="h-4 w-4" /> Kategori & Penulis
+   352→   352→          </TabsTrigger>
+   353→   353→          <TabsTrigger value="status" className="rounded-xl gap-2">
+   354→   354→            <Star className="h-4 w-4" /> Status
+   355→   355→          </TabsTrigger>
+   356→   356→          <TabsTrigger value="seo" className="rounded-xl gap-2">
+   357→   357→            <SearchIcon className="h-4 w-4" /> SEO
+   358→   358→          </TabsTrigger>
+   359→   359→        </TabsList>
+   360→   360→
+   361→   361→        {/* Konten */}
+   362→   362→        <TabsContent value="content" className="space-y-6">
+   363→   363→          <Card className="glass rounded-3xl border-border/60">
+   364→   364→            <CardHeader>
+   365→   365→              <CardTitle className="font-serif text-lg">Informasi Buku</CardTitle>
+   366→   366→            </CardHeader>
+   367→   367→            <CardContent className="space-y-4">
+   368→   368→              <div>
+   369→   369→                <Label htmlFor="book-title">Judul *</Label>
+   370→   370→                <Input
+   371→   371→                  id="book-title"
+   372→   372→                  {...register("title")}
+   373→   373→                  placeholder="contoh: Ihya Ulumuddin"
+   374→   374→                  className="mt-1.5"
+   375→   375→                  aria-invalid={!!errors.title}
+   376→   376→                />
+   377→   377→                {errors.title && (
+   378→   378→                  <p className="text-xs text-destructive mt-1">{errors.title.message}</p>
+   379→   379→                )}
+   380→   380→              </div>
+   381→   381→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   382→   382→                <div>
+   383→   383→                  <Label htmlFor="book-slug">Slug</Label>
+   384→   384→                  <Input
+   385→   385→                    id="book-slug"
+   386→   386→                    {...register("slug", {
+   387→   387→                      onChange: () => {
+   388→   388→                        slugTouched.current = true;
+   389→   389→                      },
+   390→   390→                    })}
+   391→   391→                    placeholder="ihya-ulumuddin"
+   392→   392→                    className="mt-1.5 font-mono text-sm"
+   393→   393→                    aria-invalid={!!errors.slug}
+   394→   394→                  />
+   395→   395→                  {errors.slug && (
+   396→   396→                    <p className="text-xs text-destructive mt-1">{errors.slug.message}</p>
+   397→   397→                  )}
+   398→   398→                  {!slugValue && (
+   399→   399→                    <p className="text-[11px] text-muted-foreground mt-1">
+   400→   400→                      Otomatis dibuat dari judul
+   401→   401→                    </p>
+   402→   402→                  )}
+   403→   403→                </div>
+   404→   404→                <div>
+   405→   405→                  <Label htmlFor="book-language">Bahasa</Label>
+   406→   406→                  <Controller
+   407→   407→                    control={control}
+   408→   408→                    name="language"
+   409→   409→                    render={({ field }) => (
+   410→   410→                      <Select
+   411→   411→                        value={field.value}
+   412→   412→                        onValueChange={field.onChange}
+   413→   413→                      >
+   414→   414→                        <SelectTrigger id="book-language" className="mt-1.5 w-full">
+   415→   415→                          <SelectValue />
+   416→   416→                        </SelectTrigger>
+   417→   417→                        <SelectContent>
+   418→   418→                          {LANGUAGE_OPTIONS.map((o) => (
+   419→   419→                            <SelectItem key={o.value} value={o.value}>
+   420→   420→                              {o.label}
+   421→   421→                            </SelectItem>
+   422→   422→                          ))}
+   423→   423→                        </SelectContent>
+   424→   424→                      </Select>
+   425→   425→                    )}
+   426→   426→                  />
+   427→   427→                </div>
+   428→   428→              </div>
+   429→   429→              <div>
+   430→   430→                <Label htmlFor="book-description">Deskripsi</Label>
+   431→   431→                <Textarea
+   432→   432→                  id="book-description"
+   433→   433→                  {...register("description")}
+   434→   434→                  placeholder="Deskripsi singkat buku…"
+   435→   435→                  className="mt-1.5 min-h-[100px]"
+   436→   436→                />
+   437→   437→              </div>
+   438→   438→              <div>
+   439→   439→                <div className="flex items-center justify-between mb-2">
+   440→   440→                  <Label htmlFor="book-content">Konten Buku</Label>
+   441→   441→                  <span className="text-[11px] text-muted-foreground">
+   442→   442→                    {contentValue?.length || 0} karakter
+   443→   443→                  </span>
+   444→   444→                </div>
+   445→   445→                <Controller
+   446→   446→                  control={control}
+   447→   447→                  name="content"
+   448→   448→                  render={({ field }) => (
+   449→   449→                    <RichTextEditor
+   450→   450→                      value={field.value || ""}
+   451→   451→                      onChange={field.onChange}
+   452→   452→                      placeholder="Mulai menulis konten buku… Gunakan toggle RTL & Mode Arab di kanan atas untuk penulisan kitab berbahasa Arab."
+   453→   453→                      minHeight={520}
+   454→   454→                    />
+   455→   455→                  )}
+   456→   456→                />
+   457→   457→                <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
+   458→   458→                  <SearchIcon className="h-3 w-3" />
+   459→   459→                  Editor mendukung: heading, bold/italic/underline, highlight,
+   460→   460→                  warna teks, link, gambar, tabel, code block, video YouTube,
+   461→   461→                  checklist, quote, RTL Arab, dan font Arab berkualitas.
+   462→   462→                </p>
+   463→   463→              </div>
+   464→   464→            </CardContent>
+   465→   465→          </Card>
+   466→   466→
+   467→   467→          <Card className="glass rounded-3xl border-border/60">
+   468→   468→            <CardHeader>
+   469→   469→              <CardTitle className="font-serif text-lg">Cover & Metadata</CardTitle>
+   470→   470→            </CardHeader>
+   471→   471→            <CardContent className="space-y-4">
+   472→   472→              <div>
+   473→   473→                <Label htmlFor="book-cover">Cover Buku</Label>
+   474→   474→                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+   475→   475→                  <div className="h-24 w-16 rounded-xl overflow-hidden border border-border/60 bg-secondary/40 grid place-items-center shrink-0 shadow-sm">
+   476→   476→                    {coverImageValue ? (
+   477→   477→                       
+   478→   478→                      <img
+   479→   479→                        src={coverImageValue}
+   480→   480→                        alt="Cover"
+   481→   481→                        className="h-full w-full object-cover"
+   482→   482→                      />
+   483→   483→                    ) : (
+   484→   484→                      <BookOpen className="h-6 w-6 text-muted-foreground" />
+   485→   485→                    )}
+   486→   486→                  </div>
+   487→   487→                  <div className="flex-1 min-w-[200px] space-y-2">
+   488→   488→                    <Input
+   489→   489→                      id="book-cover"
+   490→   490→                      {...register("coverImage")}
+   491→   491→                      placeholder="/uploads/cover.jpg"
+   492→   492→                    />
+   493→   493→                    <UploadButton
+   494→   494→                      category="cover"
+   495→   495→                      accept="image/*"
+   496→   496→                      label="Unggah Cover"
+   497→   497→                      onUploaded={(url) =>
+   498→   498→                        setValue("coverImage", url, { shouldValidate: true })
+   499→   499→                      }
+   500→   500→                    />
+   501→   501→                  </div>
+   502→   502→                </div>
+   503→   503→              </div>
+   504→   504→              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   505→   505→                <div>
+   506→   506→                  <Label htmlFor="book-pages">Halaman</Label>
+   507→   507→                  <Input
+   508→   508→                    id="book-pages"
+   509→   509→                    type="number"
+   510→   510→                    {...register("pages", {
+   511→   511→                      setValueAs: (v) => (v === "" || v === null ? null : Number(v)),
+   512→   512→                    })}
+   513→   513→                    placeholder="320"
+   514→   514→                    className="mt-1.5"
+   515→   515→                  />
+   516→   516→                </div>
+   517→   517→                <div>
+   518→   518→                  <Label htmlFor="book-year">Tahun Terbit</Label>
+   519→   519→                  <Input
+   520→   520→                    id="book-year"
+   521→   521→                    type="number"
+   522→   522→                    {...register("publishedYear", {
+   523→   523→                      setValueAs: (v) => (v === "" || v === null ? null : Number(v)),
+   524→   524→                    })}
+   525→   525→                    placeholder="2020"
+   526→   526→                    className="mt-1.5"
+   527→   527→                  />
+   528→   528→                </div>
+   529→   529→                <div>
+   530→   530→                  <Label htmlFor="book-isbn">ISBN</Label>
+   531→   531→                  <Input
+   532→   532→                    id="book-isbn"
+   533→   533→                    {...register("isbn")}
+   534→   534→                    placeholder="978-…"
+   535→   535→                    className="mt-1.5"
+   536→   536→                  />
+   537→   537→                </div>
+   538→   538→                <div>
+   539→   539→                  <Label htmlFor="book-publisher">Penerbit</Label>
+   540→   540→                  <Input
+   541→   541→                    id="book-publisher"
+   542→   542→                    {...register("publisher")}
+   543→   543→                    placeholder="Nama penerbit"
+   544→   544→                    className="mt-1.5"
+   545→   545→                  />
+   546→   546→                </div>
+   547→   547→              </div>
+   548→   548→              <div>
+   549→   549→                <Label htmlFor="book-toc">Daftar Isi (JSON atau teks)</Label>
+   550→   550→                <Textarea
+   551→   551→                  id="book-toc"
+   552→   552→                  {...register("toc")}
+   553→   553→                  placeholder='[{"title":"Bab 1","page":1}]'
+   554→   554→                  className="mt-1.5 min-h-[80px] font-mono text-sm"
+   555→   555→                />
+   556→   556→              </div>
+   557→   557→            </CardContent>
+   558→   558→          </Card>
+   559→   559→        </TabsContent>
+   560→   560→
+   561→   561→        {/* File Buku */}
+   562→   562→        <TabsContent value="files">
+   563→   563→          <Card className="glass rounded-3xl border-border/60">
+   564→   564→            <CardHeader className="flex-row items-center justify-between">
+   565→   565→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   566→   566→                <FileText className="h-5 w-5 text-primary" /> File Buku
+   567→   567→              </CardTitle>
+   568→   568→              <div className="flex items-center gap-2">
+   569→   569→                <UploadButton
+   570→   570→                  category="pdf"
+   571→   571→                  accept="application/pdf"
+   572→   572→                  label="Upload PDF"
+   573→   573→                  onUploaded={(url, f) =>
+   574→   574→                    f && handleFileUploaded("PDF", url, f)
+   575→   575→                  }
+   576→   576→                />
+   577→   577→                <UploadButton
+   578→   578→                  category="epub"
+   579→   579→                  accept="application/epub+zip"
+   580→   580→                  label="Upload EPUB"
+   581→   581→                  onUploaded={(url, f) =>
+   582→   582→                    f && handleFileUploaded("EPUB", url, f)
+   583→   583→                  }
+   584→   584→                />
+   585→   585→              </div>
+   586→   586→            </CardHeader>
+   587→   587→            <CardContent>
+   588→   588→              {localFiles.length === 0 ? (
+   589→   589→                <div className="py-12 flex flex-col items-center justify-center text-center">
+   590→   590→                  <div className="h-14 w-14 rounded-2xl bg-secondary/60 grid place-items-center mb-4">
+   591→   591→                    <FileText className="h-7 w-7 text-muted-foreground" />
+   592→   592→                  </div>
+   593→   593→                  <p className="text-sm text-muted-foreground max-w-md">
+   594→   594→                    Belum ada file buku terlampir. Unggah file PDF atau EPUB
+   595→   595→                    menggunakan tombol di atas.
+   596→   596→                  </p>
+   597→   597→                </div>
+   598→   598→              ) : (
+   599→   599→                <div className="space-y-2">
+   600→   600→                  {localFiles.map((f, idx) => (
+   601→   601→                    <div
+   602→   602→                      key={`${f.url}-${idx}`}
+   603→   603→                      className="flex items-center gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/60"
+   604→   604→                    >
+   605→   605→                      <div className="h-10 w-10 rounded-xl grid place-items-center bg-primary/10 text-primary shrink-0">
+   606→   606→                        <FileIcon className="h-5 w-5" />
+   607→   607→                      </div>
+   608→   608→                      <div className="min-w-0 flex-1">
+   609→   609→                        <div className="text-sm font-medium text-foreground truncate">
+   610→   610→                          {f.filename}
+   611→   611→                        </div>
+   612→   612→                        <div className="text-xs text-muted-foreground">
+   613→   613→                          {f.format} · {formatFileSize(f.size)} ·{" "}
+   614→   614→                          <a
+   615→   615→                            href={f.url}
+   616→   616→                            target="_blank"
+   617→   617→                            rel="noreferrer"
+   618→   618→                            className="hover:text-primary underline"
+   619→   619→                          >
+   620→   620→                            Lihat
+   621→   621→                          </a>
+   622→   622→                        </div>
+   623→   623→                      </div>
+   624→   624→                      <Badge variant="secondary" className="shrink-0">
+   625→   625→                        {f.format}
+   626→   626→                      </Badge>
+   627→   627→                      <Button
+   628→   628→                        variant="ghost"
+   629→   629→                        size="icon"
+   630→   630→                        className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+   631→   631→                        onClick={() => removeLocalFile(idx)}
+   632→   632→                        aria-label="Hapus file"
+   633→   633→                      >
+   634→   634→                        <Trash2 className="h-4 w-4" />
+   635→   635→                      </Button>
+   636→   636→                    </div>
+   637→   637→                  ))}
+   638→   638→                  <p className="text-[11px] text-muted-foreground mt-3 flex items-center gap-1">
+   639→   639→                    <Upload className="h-3 w-3" />
+   640→   640→                    Catatan: file yang diunggah disimpan di repository uploads.
+   641→   641→                    Penautan permanen ke buku akan tersedia setelah update API.
+   642→   642→                  </p>
+   643→   643→                </div>
+   644→   644→              )}
+   645→   645→            </CardContent>
+   646→   646→          </Card>
+   647→   647→        </TabsContent>
+   648→   648→
+   649→   649→        {/* Kategori & Penulis */}
+   650→   650→        <TabsContent value="meta" className="space-y-6">
+   651→   651→          <Card className="glass rounded-3xl border-border/60">
+   652→   652→            <CardHeader>
+   653→   653→              <CardTitle className="font-serif text-lg">Kategori & Penulis</CardTitle>
+   654→   654→            </CardHeader>
+   655→   655→            <CardContent className="space-y-4">
+   656→   656→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   657→   657→                <div>
+   658→   658→                  <Label htmlFor="book-category">Kategori *</Label>
+   659→   659→                  <Controller
+   660→   660→                    control={control}
+   661→   661→                    name="categoryId"
+   662→   662→                    render={({ field }) => (
+   663→   663→                      <Select value={field.value} onValueChange={field.onChange}>
+   664→   664→                        <SelectTrigger id="book-category" className="mt-1.5 w-full">
+   665→   665→                          <SelectValue placeholder="Pilih kategori" />
+   666→   666→                        </SelectTrigger>
+   667→   667→                        <SelectContent>
+   668→   668→                          {categories.map((c) => (
+   669→   669→                            <SelectItem key={c.id} value={c.id}>
+   670→   670→                              {c.name}
+   671→   671→                            </SelectItem>
+   672→   672→                          ))}
+   673→   673→                        </SelectContent>
+   674→   674→                      </Select>
+   675→   675→                    )}
+   676→   676→                  />
+   677→   677→                  {errors.categoryId && (
+   678→   678→                    <p className="text-xs text-destructive mt-1">
+   679→   679→                      {errors.categoryId.message}
+   680→   680→                    </p>
+   681→   681→                  )}
+   682→   682→                </div>
+   683→   683→                <div>
+   684→   684→                  <Label htmlFor="book-author">Penulis *</Label>
+   685→   685→                  <Controller
+   686→   686→                    control={control}
+   687→   687→                    name="authorId"
+   688→   688→                    render={({ field }) => (
+   689→   689→                      <Select value={field.value} onValueChange={field.onChange}>
+   690→   690→                        <SelectTrigger id="book-author" className="mt-1.5 w-full">
+   691→   691→                          <SelectValue placeholder="Pilih penulis" />
+   692→   692→                        </SelectTrigger>
+   693→   693→                        <SelectContent>
+   694→   694→                          {authors.map((a) => (
+   695→   695→                            <SelectItem key={a.id} value={a.id}>
+   696→   696→                              {a.name}
+   697→   697→                            </SelectItem>
+   698→   698→                          ))}
+   699→   699→                        </SelectContent>
+   700→   700→                      </Select>
+   701→   701→                    )}
+   702→   702→                  />
+   703→   703→                  {errors.authorId && (
+   704→   704→                    <p className="text-xs text-destructive mt-1">
+   705→   705→                      {errors.authorId.message}
+   706→   706→                    </p>
+   707→   707→                  )}
+   708→   708→                </div>
+   709→   709→              </div>
+   710→   710→              {(!categoryIdValue || !authorIdValue) && (
+   711→   711→                <div className="flex flex-wrap gap-2">
+   712→   712→                  {!categoryIdValue && (
+   713→   713→                    <Button asChild variant="outline" size="sm" className="rounded-full">
+   714→   714→                      <Link href="/admin/categories">+ Tambah Kategori</Link>
+   715→   715→                    </Button>
+   716→   716→                  )}
+   717→   717→                  {!authorIdValue && (
+   718→   718→                    <Button asChild variant="outline" size="sm" className="rounded-full">
+   719→   719→                      <Link href="/admin/authors">+ Tambah Penulis</Link>
+   720→   720→                    </Button>
+   721→   721→                  )}
+   722→   722→                </div>
+   723→   723→              )}
+   724→   724→
+   725→   725→              <div>
+   726→   726→                <Label htmlFor="book-tags">Tag (pisahkan dengan koma)</Label>
+   727→   727→                <Input
+   728→   728→                  id="book-tags"
+   729→   729→                  value={tagsInput}
+   730→   730→                  onChange={(e) => handleTagsChange(e.target.value)}
+   731→   731→                  placeholder="fiqih, tasawuf, hadits"
+   732→   732→                  className="mt-1.5"
+   733→   733→                />
+   734→   734→                <p className="text-[11px] text-muted-foreground mt-1">
+   735→   735→                  Tag baru akan dibuat otomatis saat menyimpan.
+   736→   736→                </p>
+   737→   737→                {availableTags.length > 0 && (
+   738→   738→                  <div className="mt-2 flex flex-wrap gap-1.5">
+   739→   739→                    {availableTags.slice(0, 12).map((t) => (
+   740→   740→                      <button
+   741→   741→                        type="button"
+   742→   742→                        key={t.id}
+   743→   743→                        onClick={() => {
+   744→   744→                          const names = tagsInput
+   745→   745→                            .split(",")
+   746→   746→                            .map((n) => n.trim())
+   747→   747→                            .filter(Boolean);
+   748→   748→                          if (!names.some((n) => n.toLowerCase() === t.name.toLowerCase())) {
+   749→   749→                            const next = names.concat(t.name).join(", ");
+   750→   750→                            setTagsInput(next);
+   751→   751→                          }
+   752→   752→                        }}
+   753→   753→                        className="text-[11px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground hover:bg-primary/15 hover:text-primary transition-colors"
+   754→   754→                      >
+   755→   755→                        + {t.name}
+   756→   756→                      </button>
+   757→   757→                    ))}
+   758→   758→                  </div>
+   759→   759→                )}
+   760→   760→              </div>
+   761→   761→            </CardContent>
+   762→   762→          </Card>
+   763→   763→        </TabsContent>
+   764→   764→
+   765→   765→        {/* Status */}
+   766→   766→        <TabsContent value="status">
+   767→   767→          <Card className="glass rounded-3xl border-border/60">
+   768→   768→            <CardHeader>
+   769→   769→              <CardTitle className="font-serif text-lg">Status & Visibilitas</CardTitle>
+   770→   770→            </CardHeader>
+   771→   771→            <CardContent className="space-y-4">
+   772→   772→              <div>
+   773→   773→                <Label>Status Buku</Label>
+   774→   774→                <Controller
+   775→   775→                  control={control}
+   776→   776→                  name="status"
+   777→   777→                  render={({ field }) => (
+   778→   778→                    <Select value={field.value} onValueChange={field.onChange}>
+   779→   779→                      <SelectTrigger className="mt-1.5 w-full sm:max-w-sm">
+   780→   780→                        <SelectValue />
+   781→   781→                      </SelectTrigger>
+   782→   782→                      <SelectContent>
+   783→   783→                        {STATUS_OPTIONS.map((s) => {
+   784→   784→                          const I = s.icon;
+   785→   785→                          return (
+   786→   786→                            <SelectItem key={s.value} value={s.value}>
+   787→   787→                              <span className="inline-flex items-center gap-2">
+   788→   788→                                <I className="h-4 w-4" />
+   789→   789→                                {s.label}
+   790→   790→                              </span>
+   791→   791→                            </SelectItem>
+   792→   792→                          );
+   793→   793→                        })}
+   794→   794→                      </SelectContent>
+   795→   795→                    </Select>
+   796→   796→                  )}
+   797→   797→                />
+   798→   798→                <p className="text-[11px] text-muted-foreground mt-2">
+   799→   799→                  Draft: hanya terlihat admin · Published: terlihat publik · Archived: disembunyikan dari daftar utama.
+   800→   800→                </p>
+   801→   801→              </div>
+   802→   802→              <div className="flex items-center justify-between rounded-2xl bg-secondary/50 border border-border/60 px-4 py-3">
+   803→   803→                <div className="flex items-center gap-3">
+   804→   804→                  <div className="h-10 w-10 rounded-xl bg-gold/15 grid place-items-center">
+   805→   805→                    <Star className="h-5 w-5 text-gold" />
+   806→   806→                  </div>
+   807→   807→                  <div>
+   808→   808→                    <Label htmlFor="book-featured" className="text-sm font-medium cursor-pointer">
+   809→   809→                      Buku Featured
+   810→   810→                    </Label>
+   811→   811→                    <p className="text-xs text-muted-foreground">
+   812→   812→                      Tampilkan di bagian unggulan beranda.
+   813→   813→                    </p>
+   814→   814→                  </div>
+   815→   815→                </div>
+   816→   816→                <Controller
+   817→   817→                  control={control}
+   818→   818→                  name="featured"
+   819→   819→                  render={({ field }) => (
+   820→   820→                    <Switch
+   821→   821→                      id="book-featured"
+   822→   822→                      checked={field.value}
+   823→   823→                      onCheckedChange={field.onChange}
+   824→   824→                    />
+   825→   825→                  )}
+   826→   826→                />
+   827→   827→              </div>
+   828→   828→            </CardContent>
+   829→   829→          </Card>
+   830→   830→        </TabsContent>
+   831→   831→
+   832→   832→        {/* SEO */}
+   833→   833→        <TabsContent value="seo">
+   834→   834→          <Card className="glass rounded-3xl border-border/60">
+   835→   835→            <CardHeader>
+   836→   836→              <CardTitle className="font-serif text-lg">Pengaturan SEO</CardTitle>
+   837→   837→            </CardHeader>
+   838→   838→            <CardContent className="space-y-4">
+   839→   839→              <div>
+   840→   840→                <Label htmlFor="book-seo-title">SEO Title</Label>
+   841→   841→                <Input
+   842→   842→                  id="book-seo-title"
+   843→   843→                  {...register("seoTitle")}
+   844→   844→                  placeholder="Judul untuk search engine"
+   845→   845→                  className="mt-1.5"
+   846→   846→                />
+   847→   847→              </div>
+   848→   848→              <div>
+   849→   849→                <Label htmlFor="book-seo-desc">SEO Description</Label>
+   850→   850→                <Textarea
+   851→   851→                  id="book-seo-desc"
+   852→   852→                  {...register("seoDescription")}
+   853→   853→                  placeholder="Deskripsi untuk search engine (max 300 karakter)"
+   854→   854→                  className="mt-1.5 min-h-[80px]"
+   855→   855→                />
+   856→   856→              </div>
+   857→   857→              <div>
+   858→   858→                <Label htmlFor="book-seo-keywords">SEO Keywords</Label>
+   859→   859→                <Input
+   860→   860→                  id="book-seo-keywords"
+   861→   861→                  {...register("seoKeywords")}
+   862→   862→                  placeholder="kata kunci, dipisah, koma"
+   863→   863→                  className="mt-1.5"
+   864→   864→                />
+   865→   865→              </div>
+   866→   866→            </CardContent>
+   867→   867→          </Card>
+   868→   868→        </TabsContent>
+   869→   869→      </Tabs>
+   870→   870→
+   871→   871→      {/* Sticky save bar */}
+   872→   872→      <div className="sticky bottom-4 z-10 flex justify-end">
+   873→   873→        <div className="glass-strong rounded-full shadow-lg border border-border/60 p-1.5 pr-2 flex items-center gap-2">
+   874→   874→          <Button
+   875→   875→            onClick={handleSubmit(onSubmit)}
+   876→   876→            disabled={isSubmitting}
+   877→   877→            className="rounded-full"
+   878→   878→          >
+   879→   879→            {isSubmitting ? (
+   880→   880→              <>
+   881→   881→                <Loader2 className="h-4 w-4 animate-spin" /> Menyimpan…
+   882→   882→              </>
+   883→   883→            ) : (
+   884→   884→              <>
+   885→   885→                <Save className="h-4 w-4" /> {isEdit ? "Perbarui Buku" : "Simpan Buku"}
+   886→   886→              </>
+   887→   887→            )}
+   888→   888→          </Button>
+   889→   889→        </div>
+   890→   890→      </div>
+   891→   891→    </div>
+   892→   892→  );
+   893→   893→}
+   894→   894→

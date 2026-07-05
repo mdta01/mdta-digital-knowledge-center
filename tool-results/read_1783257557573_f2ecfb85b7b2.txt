@@ -1,0 +1,679 @@
+     1→     1→"use client";
+     2→     2→import { useEffect, useMemo, useState } from "react";
+     3→     3→import {
+     4→     4→  BookOpen,
+     5→     5→  Users,
+     6→     6→  LayoutGrid,
+     7→     7→  Eye,
+     8→     8→  TrendingUp,
+     9→     9→  Star,
+    10→    10→  ScrollText,
+    11→    11→  Mail,
+    12→    12→  Activity,
+    13→    13→  FileEdit,
+    14→    14→  Trash2,
+    15→    15→  LogIn,
+    16→    16→  UserPlus,
+    17→    17→  Bell,
+    18→    18→  HardDrive,
+    19→    19→  CheckCircle2,
+    20→    20→  Server,
+    21→    21→  Image as ImageIcon,
+    22→    22→  FileText,
+    23→    23→  Plus,
+    24→    24→  BarChart3,
+    25→    25→  DatabaseBackup,
+    26→    26→  Settings as SettingsIcon,
+    27→    27→  Clock,
+    28→    28→  Upload,
+    29→    29→} from "lucide-react";
+    30→    30→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+    31→    31→import { Badge } from "@/components/ui/badge";
+    32→    32→import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+    33→    33→import { Button } from "@/components/ui/button";
+    34→    34→import { Progress } from "@/components/ui/progress";
+    35→    35→import { motion } from "framer-motion";
+    36→    36→import Link from "next/link";
+    37→    37→import {
+    38→    38→  ResponsiveContainer,
+    39→    39→  BarChart,
+    40→    40→  Bar,
+    41→    41→  XAxis,
+    42→    42→  YAxis,
+    43→    43→  Tooltip,
+    44→    44→  LineChart,
+    45→    45→  Line,
+    46→    46→  CartesianGrid,
+    47→    47→} from "recharts";
+    48→    48→import type { BookWithRelations } from "@/lib/repositories";
+    49→    49→import type { ActivityLog, User, Upload } from "@prisma/client";
+    50→    50→import { formatFileSize, formatDateTime } from "@/components/admin/utils";
+    51→    51→
+    52→    52→type ActivityWithUser = ActivityLog & { user: Pick<User, "id" | "name" | "email"> };
+    53→    53→
+    54→    54→interface Overview {
+    55→    55→  books: {
+    56→    56→    total: number;
+    57→    57→    published: number;
+    58→    58→    draft: number;
+    59→    59→    featured: number;
+    60→    60→    totalViews: number;
+    61→    61→    totalDownloads: number;
+    62→    62→    byType?: Record<string, number>;
+    63→    63→  };
+    64→    64→  authors: number;
+    65→    65→  categories: number;
+    66→    66→  users: number;
+    67→    67→  messages: number;
+    68→    68→  recentActivity: ActivityWithUser[];
+    69→    69→  popularBooks: BookWithRelations[];
+    70→    70→  recentUploads: Upload[];
+    71→    71→  unreadNotifications: number;
+    72→    72→  storageUsed: number;
+    73→    73→}
+    74→    74→
+    75→    75→interface TopAuthor {
+    76→    76→  id: string;
+    77→    77→  name: string;
+    78→    78→  slug: string;
+    79→    79→  photo?: string | null;
+    80→    80→  bookCount: number;
+    81→    81→}
+    82→    82→
+    83→    83→interface DashboardClientProps {
+    84→    84→  overview: Overview;
+    85→    85→  userName: string;
+    86→    86→  topAuthors: TopAuthor[];
+    87→    87→  analyticsDaily: Array<{ date: string; count: number }>;
+    88→    88→}
+    89→    89→
+    90→    90→const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+    91→    91→  CREATE: { label: "Membuat", color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
+    92→    92→  UPDATE: { label: "Memperbarui", color: "bg-sky-500/15 text-sky-700 dark:text-sky-300" },
+    93→    93→  DELETE: { label: "Menghapus", color: "bg-rose-500/15 text-rose-700 dark:text-rose-300" },
+    94→    94→  LOGIN: { label: "Masuk", color: "bg-violet-500/15 text-violet-700 dark:text-violet-300" },
+    95→    95→  LOGOUT: { label: "Keluar", color: "bg-zinc-500/15 text-zinc-700 dark:text-zinc-300" },
+    96→    96→  PUBLISH: { label: "Publikasi", color: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
+    97→    97→  EXPORT: { label: "Ekspor", color: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300" },
+    98→    98→  IMPORT: { label: "Impor", color: "bg-teal-500/15 text-teal-700 dark:text-teal-300" },
+    99→    99→  SETTINGS: { label: "Pengaturan", color: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300" },
+   100→   100→};
+   101→   101→
+   102→   102→const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+   103→   103→  CREATE: FileEdit,
+   104→   104→  UPDATE: FileEdit,
+   105→   105→  DELETE: Trash2,
+   106→   106→  LOGIN: LogIn,
+   107→   107→  LOGOUT: LogIn,
+   108→   108→  PUBLISH: Star,
+   109→   109→  EXPORT: DatabaseBackup,
+   110→   110→  IMPORT: DatabaseBackup,
+   111→   111→  SETTINGS: SettingsIcon,
+   112→   112→};
+   113→   113→
+   114→   114→const COLLECTION_LABELS: Record<string, string> = {
+   115→   115→  BOOK: "Buku",
+   116→   116→  KITAB: "Kitab",
+   117→   117→  ARTICLE: "Artikel",
+   118→   118→  VIDEO: "Video",
+   119→   119→  AUDIO: "Audio",
+   120→   120→  DOCUMENT: "Dokumen",
+   121→   121→  DINIYAH: "Diniyah",
+   122→   122→};
+   123→   123→
+   124→   124→function getGreeting(hour: number): string {
+   125→   125→  if (hour >= 4 && hour < 11) return "Selamat pagi";
+   126→   126→  if (hour >= 11 && hour < 15) return "Selamat siang";
+   127→   127→  if (hour >= 15 && hour < 18) return "Selamat sore";
+   128→   128→  return "Selamat malam";
+   129→   129→}
+   130→   130→
+   131→   131→export function DashboardClient({
+   132→   132→  overview,
+   133→   133→  userName,
+   134→   134→  topAuthors,
+   135→   135→  analyticsDaily,
+   136→   136→}: DashboardClientProps) {
+   137→   137→  const [now, setNow] = useState<Date | null>(null);
+   138→   138→  useEffect(() => {
+   139→   139→    setNow(new Date());
+   140→   140→  }, []);
+   141→   141→
+   142→   142→  const greeting = now ? getGreeting(now.getHours()) : "Selamat datang";
+   143→   143→  const hourStr = now
+   144→   144→    ? now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+   145→   145→    : "";
+   146→   146→
+   147→   147→  const stats = [
+   148→   148→    {
+   149→   149→      label: "Total Buku",
+   150→   150→      value: overview.books.total,
+   151→   151→      sub: `${overview.books.published} publikasi · ${overview.books.draft} draft`,
+   152→   152→      icon: BookOpen,
+   153→   153→      gradient: "from-emerald-500/20 to-teal-500/20",
+   154→   154→      iconColor: "text-emerald-600",
+   155→   155→    },
+   156→   156→    {
+   157→   157→      label: "Total Penulis",
+   158→   158→      value: overview.authors,
+   159→   159→      sub: "Penulis terdaftar",
+   160→   160→      icon: Users,
+   161→   161→      gradient: "from-amber-500/20 to-yellow-500/20",
+   162→   162→      iconColor: "text-amber-600",
+   163→   163→    },
+   164→   164→    {
+   165→   165→      label: "Total Kategori",
+   166→   166→      value: overview.categories,
+   167→   167→      sub: "Kategori aktif",
+   168→   168→      icon: LayoutGrid,
+   169→   169→      gradient: "from-violet-500/20 to-purple-500/20",
+   170→   170→      iconColor: "text-violet-600",
+   171→   171→    },
+   172→   172→    {
+   173→   173→      label: "Total Pengunjung",
+   174→   174→      value: overview.books.totalViews,
+   175→   175→      sub: "Kali dibaca",
+   176→   176→      icon: Eye,
+   177→   177→      gradient: "from-sky-500/20 to-blue-500/20",
+   178→   178→      iconColor: "text-sky-600",
+   179→   179→    },
+   180→   180→  ];
+   181→   181→
+   182→   182→  // Build chart data: books by collection type
+   183→   183→  const byTypeData = useMemo(() => {
+   184→   184→    const byType = overview.books.byType ?? {};
+   185→   185→    return Object.entries(byType).map(([key, value]) => ({
+   186→   186→      name: COLLECTION_LABELS[key] ?? key,
+   187→   187→      total: value as number,
+   188→   188→    }));
+   189→   189→  }, [overview.books.byType]);
+   190→   190→
+   191→   191→  // Daily activity chart: use analyticsDaily (events) if present, else fall back to activity logs per day
+   192→   192→  const dailyData = useMemo(() => {
+   193→   193→    if (analyticsDaily.length > 0) {
+   194→   194→      return analyticsDaily.map((d) => ({
+   195→   195→        date: d.date.slice(5), // MM-DD
+   196→   196→        visits: d.count,
+   197→   197→      }));
+   198→   198→    }
+   199→   199→    // Build last 14 days from recentActivity
+   200→   200→    const map = new Map<string, number>();
+   201→   201→    const today = new Date();
+   202→   202→    for (let i = 13; i >= 0; i--) {
+   203→   203→      const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+   204→   204→      map.set(d.toISOString().slice(0, 10), 0);
+   205→   205→    }
+   206→   206→    for (const log of overview.recentActivity) {
+   207→   207→      const key = new Date(log.createdAt).toISOString().slice(0, 10);
+   208→   208→      if (map.has(key)) map.set(key, (map.get(key) || 0) + 1);
+   209→   209→    }
+   210→   210→    return Array.from(map.entries()).map(([k, v]) => ({
+   211→   211→      date: k.slice(5),
+   212→   212→      visits: v,
+   213→   213→    }));
+   214→   214→  }, [analyticsDaily, overview.recentActivity]);
+   215→   215→
+   216→   216→  const quickActions = [
+   217→   217→    { label: "Tambah Buku", icon: BookOpen, href: "/admin/books/new", color: "text-emerald-600 bg-emerald-500/10" },
+   218→   218→    { label: "Tambah Penulis", icon: UserPlus, href: "/admin/authors", color: "text-amber-600 bg-amber-500/10" },
+   219→   219→    { label: "Upload Media", icon: Upload, href: "/admin/media", color: "text-sky-600 bg-sky-500/10" },
+   220→   220→    { label: "Lihat Analytics", icon: BarChart3, href: "/admin/analytics", color: "text-violet-600 bg-violet-500/10" },
+   221→   221→    { label: "Backup", icon: DatabaseBackup, href: "/admin/backup", color: "text-cyan-600 bg-cyan-500/10" },
+   222→   222→    { label: "Pengaturan", icon: SettingsIcon, href: "/admin/settings", color: "text-rose-600 bg-rose-500/10" },
+   223→   223→  ];
+   224→   224→
+   225→   225→  // Storage usage (assume 1GB limit)
+   226→   226→  const STORAGE_LIMIT = 1024 * 1024 * 1024; // 1GB
+   227→   227→  const storagePct = Math.min(100, Math.round((overview.storageUsed / STORAGE_LIMIT) * 100));
+   228→   228→
+   229→   229→  return (
+   230→   230→    <div>
+   231→   231→      {/* Greeting + quick actions */}
+   232→   232→      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+   233→   233→        <div>
+   234→   234→          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">
+   235→   235→            {greeting}, {userName.split(" ")[0]} 👋
+   236→   236→          </h1>
+   237→   237→          <p className="text-sm text-muted-foreground mt-1">
+   238→   238→            Berikut ringkasan aktivitas perpustakaan digital Anda hari ini
+   239→   239→            {now && (
+   240→   240→              <span className="ml-2 inline-flex items-center gap-1">
+   241→   241→                <Clock className="h-3 w-3" /> {hourStr} WIB
+   242→   242→              </span>
+   243→   243→            )}
+   244→   244→          </p>
+   245→   245→        </div>
+   246→   246→        {overview.unreadNotifications > 0 && (
+   247→   247→          <Link
+   248→   248→            href="/admin/notifications"
+   249→   249→            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-sm font-medium hover:bg-amber-500/25 transition-colors"
+   250→   250→          >
+   251→   251→            <Bell className="h-4 w-4" />
+   252→   252→            {overview.unreadNotifications} notifikasi belum dibaca
+   253→   253→          </Link>
+   254→   254→        )}
+   255→   255→      </div>
+   256→   256→
+   257→   257→      {/* Stat cards */}
+   258→   258→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+   259→   259→        {stats.map((s, i) => {
+   260→   260→          const Icon = s.icon;
+   261→   261→          return (
+   262→   262→            <motion.div
+   263→   263→              key={s.label}
+   264→   264→              initial={{ opacity: 0, y: 16 }}
+   265→   265→              animate={{ opacity: 1, y: 0 }}
+   266→   266→              transition={{ duration: 0.4, delay: i * 0.05 }}
+   267→   267→            >
+   268→   268→              <Card className="relative overflow-hidden border-border/60">
+   269→   269→                <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-50`} />
+   270→   270→                <CardContent className="relative p-5">
+   271→   271→                  <div className="flex items-start justify-between">
+   272→   272→                    <div className="h-12 w-12 rounded-2xl bg-background/80 backdrop-blur-md grid place-items-center">
+   273→   273→                      <Icon className={`h-6 w-6 ${s.iconColor}`} />
+   274→   274→                    </div>
+   275→   275→                    <TrendingUp className="h-4 w-4 text-muted-foreground/60" />
+   276→   276→                  </div>
+   277→   277→                  <div className="mt-4">
+   278→   278→                    <div className="text-3xl font-bold font-serif text-foreground">
+   279→   279→                      {Number(s.value).toLocaleString("id-ID")}
+   280→   280→                    </div>
+   281→   281→                    <div className="text-sm text-foreground/80 font-medium mt-0.5">
+   282→   282→                      {s.label}
+   283→   283→                    </div>
+   284→   284→                    <div className="text-xs text-muted-foreground mt-1">{s.sub}</div>
+   285→   285→                  </div>
+   286→   286→                </CardContent>
+   287→   287→              </Card>
+   288→   288→            </motion.div>
+   289→   289→          );
+   290→   290→        })}
+   291→   291→      </div>
+   292→   292→
+   293→   293→      {/* Quick Actions */}
+   294→   294→      <div className="mb-6">
+   295→   295→        <h2 className="font-serif text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+   296→   296→          <Plus className="h-4 w-4 text-primary" /> Aksi Cepat
+   297→   297→        </h2>
+   298→   298→        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+   299→   299→          {quickActions.map((a, i) => {
+   300→   300→            const Icon = a.icon;
+   301→   301→            return (
+   302→   302→              <motion.div
+   303→   303→                key={a.label}
+   304→   304→                initial={{ opacity: 0, y: 12 }}
+   305→   305→                animate={{ opacity: 1, y: 0 }}
+   306→   306→                transition={{ duration: 0.3, delay: i * 0.04 }}
+   307→   307→              >
+   308→   308→                <Link href={a.href}>
+   309→   309→                  <Card className="border-border/60 hover:border-primary/40 hover:shadow-md transition-all h-full">
+   310→   310→                    <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+   311→   311→                      <div className={`h-10 w-10 rounded-2xl grid place-items-center ${a.color}`}>
+   312→   312→                        <Icon className="h-5 w-5" />
+   313→   313→                      </div>
+   314→   314→                      <span className="text-xs font-medium text-foreground">{a.label}</span>
+   315→   315→                    </CardContent>
+   316→   316→                  </Card>
+   317→   317→                </Link>
+   318→   318→              </motion.div>
+   319→   319→            );
+   320→   320→          })}
+   321→   321→        </div>
+   322→   322→      </div>
+   323→   323→
+   324→   324→      {/* Charts row */}
+   325→   325→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+   326→   326→        <Card className="border-border/60">
+   327→   327→          <CardHeader className="pb-3">
+   328→   328→            <CardTitle className="font-serif text-base flex items-center gap-2">
+   329→   329→              <LayoutGrid className="h-4 w-4 text-primary" />
+   330→   330→              Buku per Tipe Koleksi
+   331→   331→            </CardTitle>
+   332→   332→          </CardHeader>
+   333→   333→          <CardContent>
+   334→   334→            <div className="h-64">
+   335→   335→              {byTypeData.length === 0 ? (
+   336→   336→                <div className="h-full grid place-items-center text-sm text-muted-foreground">
+   337→   337→                  Belum ada data buku.
+   338→   338→                </div>
+   339→   339→              ) : (
+   340→   340→                <ResponsiveContainer width="100%" height="100%">
+   341→   341→                  <BarChart data={byTypeData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+   342→   342→                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+   343→   343→                    <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+   344→   344→                    <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+   345→   345→                    <Tooltip
+   346→   346→                      contentStyle={{
+   347→   347→                        background: "hsl(var(--background))",
+   348→   348→                        border: "1px solid hsl(var(--border))",
+   349→   349→                        borderRadius: 12,
+   350→   350→                        fontSize: 12,
+   351→   351→                      }}
+   352→   352→                    />
+   353→   353→                    <Bar dataKey="total" fill="#059669" radius={[6, 6, 0, 0]} />
+   354→   354→                  </BarChart>
+   355→   355→                </ResponsiveContainer>
+   356→   356→              )}
+   357→   357→            </div>
+   358→   358→          </CardContent>
+   359→   359→        </Card>
+   360→   360→
+   361→   361→        <Card className="border-border/60">
+   362→   362→          <CardHeader className="pb-3">
+   363→   363→            <CardTitle className="font-serif text-base flex items-center gap-2">
+   364→   364→              <TrendingUp className="h-4 w-4 text-primary" />
+   365→   365→              Aktivitas Pengunjung (30 hari)
+   366→   366→            </CardTitle>
+   367→   367→          </CardHeader>
+   368→   368→          <CardContent>
+   369→   369→            <div className="h-64">
+   370→   370→              <ResponsiveContainer width="100%" height="100%">
+   371→   371→                <LineChart data={dailyData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+   372→   372→                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+   373→   373→                  <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+   374→   374→                  <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+   375→   375→                  <Tooltip
+   376→   376→                    contentStyle={{
+   377→   377→                      background: "hsl(var(--background))",
+   378→   378→                      border: "1px solid hsl(var(--border))",
+   379→   379→                      borderRadius: 12,
+   380→   380→                      fontSize: 12,
+   381→   381→                    }}
+   382→   382→                  />
+   383→   383→                  <Line
+   384→   384→                    type="monotone"
+   385→   385→                    dataKey="visits"
+   386→   386→                    stroke="#d4af37"
+   387→   387→                    strokeWidth={2.5}
+   388→   388→                    dot={{ r: 2, fill: "#d4af37" }}
+   389→   389→                    activeDot={{ r: 5 }}
+   390→   390→                  />
+   391→   391→                </LineChart>
+   392→   392→              </ResponsiveContainer>
+   393→   393→            </div>
+   394→   394→          </CardContent>
+   395→   395→        </Card>
+   396→   396→      </div>
+   397→   397→
+   398→   398→      {/* Top Authors + Storage + System Status */}
+   399→   399→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+   400→   400→        {/* Top Authors */}
+   401→   401→        <Card className="border-border/60 lg:col-span-1">
+   402→   402→          <CardHeader className="pb-3 flex-row items-center justify-between">
+   403→   403→            <CardTitle className="font-serif text-base flex items-center gap-2">
+   404→   404→              <Star className="h-4 w-4 text-gold" /> Top Penulis
+   405→   405→            </CardTitle>
+   406→   406→            <Link href="/admin/authors" className="text-xs text-primary hover:underline">
+   407→   407→              Semua
+   408→   408→            </Link>
+   409→   409→          </CardHeader>
+   410→   410→          <CardContent className="p-0">
+   411→   411→            <div className="divide-y divide-border/60 max-h-72 overflow-y-auto">
+   412→   412→              {topAuthors.map((a, i) => (
+   413→   413→                <Link
+   414→   414→                  key={a.id}
+   415→   415→                  href={`/admin/authors`}
+   416→   416→                  className="flex items-center gap-3 px-5 py-3 hover:bg-secondary/50 transition-colors"
+   417→   417→                >
+   418→   418→                  <div className="text-base font-bold font-serif text-muted-foreground w-5">
+   419→   419→                    {i + 1}
+   420→   420→                  </div>
+   421→   421→                  <Avatar className="h-9 w-9">
+   422→   422→                    {a.photo ? (
+   423→   423→                      // eslint-disable-next-line @next/next/no-img-element
+   424→   424→                      <img
+   425→   425→                        src={a.photo}
+   426→   426→                        alt={a.name}
+   427→   427→                        className="h-full w-full object-cover"
+   428→   428→                      />
+   429→   429→                    ) : (
+   430→   430→                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
+   431→   431→                        {a.name.charAt(0).toUpperCase()}
+   432→   432→                      </AvatarFallback>
+   433→   433→                    )}
+   434→   434→                  </Avatar>
+   435→   435→                  <div className="flex-1 min-w-0">
+   436→   436→                    <div className="text-sm font-medium text-foreground truncate">
+   437→   437→                      {a.name}
+   438→   438→                    </div>
+   439→   439→                    <div className="text-[11px] text-muted-foreground">
+   440→   440→                      {a.bookCount} buku
+   441→   441→                    </div>
+   442→   442→                  </div>
+   443→   443→                </Link>
+   444→   444→              ))}
+   445→   445→              {topAuthors.length === 0 && (
+   446→   446→                <div className="p-8 text-center text-sm text-muted-foreground">
+   447→   447→                  Belum ada penulis terdaftar.
+   448→   448→                </div>
+   449→   449→              )}
+   450→   450→            </div>
+   451→   451→          </CardContent>
+   452→   452→        </Card>
+   453→   453→
+   454→   454→        {/* Storage Usage */}
+   455→   455→        <Card className="border-border/60">
+   456→   456→          <CardHeader className="pb-3">
+   457→   457→            <CardTitle className="font-serif text-base flex items-center gap-2">
+   458→   458→              <HardDrive className="h-4 w-4 text-primary" /> Penggunaan Penyimpanan
+   459→   459→            </CardTitle>
+   460→   460→          </CardHeader>
+   461→   461→          <CardContent className="space-y-3">
+   462→   462→            <div className="flex items-baseline justify-between">
+   463→   463→              <span className="text-2xl font-bold font-serif text-foreground">
+   464→   464→                {formatFileSize(overview.storageUsed)}
+   465→   465→              </span>
+   466→   466→              <span className="text-xs text-muted-foreground">dari 1 GB</span>
+   467→   467→            </div>
+   468→   468→            <Progress value={storagePct} className="h-2" />
+   469→   469→            <div className="text-xs text-muted-foreground flex items-center justify-between">
+   470→   470→              <span>{storagePct}% terpakai</span>
+   471→   471→              <span>{formatFileSize(Math.max(0, STORAGE_LIMIT - overview.storageUsed))} tersisa</span>
+   472→   472→            </div>
+   473→   473→            <Link
+   474→   474→              href="/admin/media"
+   475→   475→              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+   476→   476→            >
+   477→   477→              <ImageIcon className="h-3.5 w-3.5" /> Kelola Media
+   478→   478→            </Link>
+   479→   479→          </CardContent>
+   480→   480→        </Card>
+   481→   481→
+   482→   482→        {/* System Status */}
+   483→   483→        <Card className="border-border/60">
+   484→   484→          <CardHeader className="pb-3">
+   485→   485→            <CardTitle className="font-serif text-base flex items-center gap-2">
+   486→   486→              <Server className="h-4 w-4 text-primary" /> Status Sistem
+   487→   487→            </CardTitle>
+   488→   488→          </CardHeader>
+   489→   489→          <CardContent className="space-y-3">
+   490→   490→            <div className="flex items-center gap-2">
+   491→   491→              <span className="relative flex h-2.5 w-2.5">
+   492→   492→                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+   493→   493→                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600" />
+   494→   494→              </span>
+   495→   495→              <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+   496→   496→                <CheckCircle2 className="h-3 w-3" /> Operational
+   497→   497→              </Badge>
+   498→   498→            </div>
+   499→   499→            <div className="space-y-1.5 text-xs">
+   500→   500→              <div className="flex justify-between">
+   501→   501→                <span className="text-muted-foreground">Server Uptime</span>
+   502→   502→                <span className="font-medium text-foreground">99.9%</span>
+   503→   503→              </div>
+   504→   504→              <div className="flex justify-between">
+   505→   505→                <span className="text-muted-foreground">Database</span>
+   506→   506→                <span className="font-medium text-emerald-600">Online</span>
+   507→   507→              </div>
+   508→   508→              <div className="flex justify-between">
+   509→   509→                <span className="text-muted-foreground">Tanggal</span>
+   510→   510→                <span className="font-medium text-foreground">
+   511→   511→                  {now ? now.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+   512→   512→                </span>
+   513→   513→              </div>
+   514→   514→              <div className="flex justify-between">
+   515→   515→                <span className="text-muted-foreground">Backup Terakhir</span>
+   516→   516→                <span className="font-medium text-foreground">Belum pernah</span>
+   517→   517→              </div>
+   518→   518→            </div>
+   519→   519→            <Link
+   520→   520→              href="/admin/cache"
+   521→   521→              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+   522→   522→            >
+   523→   523→              <SettingsIcon className="h-3.5 w-3.5" /> Cache & Optimasi
+   524→   524→            </Link>
+   525→   525→          </CardContent>
+   526→   526→        </Card>
+   527→   527→      </div>
+   528→   528→
+   529→   529→      {/* Top Buku + Activity Timeline */}
+   530→   530→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+   531→   531→        {/* Popular books */}
+   532→   532→        <Card className="lg:col-span-1 border-border/60">
+   533→   533→          <CardHeader className="flex-row items-center justify-between pb-3">
+   534→   534→            <CardTitle className="font-serif text-base flex items-center gap-2">
+   535→   535→              <Star className="h-4 w-4 text-gold" /> Top Buku
+   536→   536→            </CardTitle>
+   537→   537→            <Link href="/admin/books" className="text-xs text-primary hover:underline">
+   538→   538→              Lihat semua
+   539→   539→            </Link>
+   540→   540→          </CardHeader>
+   541→   541→          <CardContent className="p-0">
+   542→   542→            <div className="divide-y divide-border/60">
+   543→   543→              {overview.popularBooks.map((book, i) => (
+   544→   544→                <Link
+   545→   545→                  key={book.id}
+   546→   546→                  href={`/admin/books/${book.id}`}
+   547→   547→                  className="flex items-center gap-3 px-5 py-3 hover:bg-secondary/50 transition-colors"
+   548→   548→                >
+   549→   549→                  <div className="text-base font-bold font-serif text-muted-foreground w-5">
+   550→   550→                    {i + 1}
+   551→   551→                  </div>
+   552→   552→                  <div className="flex-1 min-w-0">
+   553→   553→                    <div className="text-sm font-medium text-foreground truncate">
+   554→   554→                      {book.title}
+   555→   555→                    </div>
+   556→   556→                    <div className="text-xs text-muted-foreground">
+   557→   557→                      {book.author?.name} · {book.category?.name}
+   558→   558→                    </div>
+   559→   559→                  </div>
+   560→   560→                  <div className="text-right shrink-0">
+   561→   561→                    <div className="text-sm font-semibold text-foreground">
+   562→   562→                      {book.views}
+   563→   563→                    </div>
+   564→   564→                    <div className="text-[11px] text-muted-foreground">dibaca</div>
+   565→   565→                  </div>
+   566→   566→                </Link>
+   567→   567→              ))}
+   568→   568→              {overview.popularBooks.length === 0 && (
+   569→   569→                <div className="p-8 text-center text-sm text-muted-foreground">
+   570→   570→                  Belum ada buku yang dipublikasikan.
+   571→   571→                </div>
+   572→   572→              )}
+   573→   573→            </div>
+   574→   574→          </CardContent>
+   575→   575→        </Card>
+   576→   576→
+   577→   577→        {/* Activity Timeline */}
+   578→   578→        <Card className="lg:col-span-2 border-border/60">
+   579→   579→          <CardHeader className="flex-row items-center justify-between pb-3">
+   580→   580→            <CardTitle className="font-serif text-base flex items-center gap-2">
+   581→   581→              <Activity className="h-4 w-4 text-primary" /> Timeline Aktivitas
+   582→   582→            </CardTitle>
+   583→   583→            <Link href="/admin/activity-logs" className="text-xs text-primary hover:underline">
+   584→   584→              Semua log
+   585→   585→            </Link>
+   586→   586→          </CardHeader>
+   587→   587→          <CardContent>
+   588→   588→            <div className="relative">
+   589→   589→              <div className="absolute left-4 top-0 bottom-0 w-px bg-border/60" aria-hidden />
+   590→   590→              <ol className="space-y-3 max-h-96 overflow-y-auto pr-2">
+   591→   591→                {overview.recentActivity.map((log) => {
+   592→   592→                  const action = ACTION_LABELS[log.action] || {
+   593→   593→                    label: log.action,
+   594→   594→                    color: "bg-zinc-500/15 text-zinc-700 dark:text-zinc-300",
+   595→   595→                  };
+   596→   596→                  const Icon = ACTION_ICONS[log.action] || Activity;
+   597→   597→                  return (
+   598→   598→                    <li key={log.id} className="relative pl-10">
+   599→   599→                      <div className={`absolute left-1.5 top-1.5 h-5 w-5 rounded-full grid place-items-center ring-4 ring-background ${action.color}`}>
+   600→   600→                        <Icon className="h-3 w-3" />
+   601→   601→                      </div>
+   602→   602→                      <div className="flex items-center gap-2 flex-wrap">
+   603→   603→                        <span className="text-sm font-medium text-foreground">
+   604→   604→                          {log.user?.name || "Unknown"}
+   605→   605→                        </span>
+   606→   606→                        <Badge variant="secondary" className={`text-[10px] py-0 px-1.5 ${action.color}`}>
+   607→   607→                          {action.label}
+   608→   608→                        </Badge>
+   609→   609→                        <span className="text-xs text-muted-foreground">{log.entity}</span>
+   610→   610→                        {log.entityId && (
+   611→   611→                          <span className="text-[10px] font-mono text-muted-foreground">
+   612→   612→                            #{log.entityId.slice(-6)}
+   613→   613→                          </span>
+   614→   614→                        )}
+   615→   615→                      </div>
+   616→   616→                      <div className="text-[11px] text-muted-foreground/80 mt-0.5">
+   617→   617→                        {formatDateTime(log.createdAt)}
+   618→   618→                      </div>
+   619→   619→                    </li>
+   620→   620→                  );
+   621→   621→                })}
+   622→   622→                {overview.recentActivity.length === 0 && (
+   623→   623→                  <div className="py-8 text-center text-sm text-muted-foreground">
+   624→   624→                    Belum ada aktivitas tercatat.
+   625→   625→                  </div>
+   626→   626→                )}
+   627→   627→              </ol>
+   628→   628→            </div>
+   629→   629→          </CardContent>
+   630→   630→        </Card>
+   631→   631→      </div>
+   632→   632→
+   633→   633→      {/* Recent Uploads */}
+   634→   634→      <Card className="border-border/60">
+   635→   635→        <CardHeader className="flex-row items-center justify-between pb-3">
+   636→   636→          <CardTitle className="font-serif text-base flex items-center gap-2">
+   637→   637→            <Upload className="h-4 w-4 text-primary" /> Upload Terbaru
+   638→   638→          </CardTitle>
+   639→   639→          <Link href="/admin/media" className="text-xs text-primary hover:underline">
+   640→   640→            Media Manager
+   641→   641→          </Link>
+   642→   642→        </CardHeader>
+   643→   643→        <CardContent>
+   644→   644→          {overview.recentUploads.length === 0 ? (
+   645→   645→            <div className="py-8 text-center text-sm text-muted-foreground">
+   646→   646→              Belum ada file yang diunggah.
+   647→   647→            </div>
+   648→   648→          ) : (
+   649→   649→            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+   650→   650→              {overview.recentUploads.map((u) => (
+   651→   651→                <div
+   652→   652→                  key={u.id}
+   653→   653→                  className="flex items-center gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/60"
+   654→   654→                >
+   655→   655→                  <div className="h-10 w-10 rounded-xl grid place-items-center bg-primary/10 text-primary shrink-0">
+   656→   656→                    {u.mimeType?.startsWith("image/") ? (
+   657→   657→                      <ImageIcon className="h-5 w-5" />
+   658→   658→                    ) : (
+   659→   659→                      <FileText className="h-5 w-5" />
+   660→   660→                    )}
+   661→   661→                  </div>
+   662→   662→                  <div className="min-w-0 flex-1">
+   663→   663→                    <div className="text-sm font-medium text-foreground truncate">
+   664→   664→                      {u.originalName}
+   665→   665→                    </div>
+   666→   666→                    <div className="text-[11px] text-muted-foreground">
+   667→   667→                      {formatFileSize(u.size)} · {u.category || "other"} · {formatDateTime(u.createdAt)}
+   668→   668→                    </div>
+   669→   669→                  </div>
+   670→   670→                </div>
+   671→   671→              ))}
+   672→   672→            </div>
+   673→   673→          )}
+   674→   674→        </CardContent>
+   675→   675→      </Card>
+   676→   676→    </div>
+   677→   677→  );
+   678→   678→}
+   679→   679→

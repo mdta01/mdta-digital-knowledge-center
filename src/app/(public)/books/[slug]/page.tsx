@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookCard } from "@/components/public/book-card";
 import { SettingProvider } from "./setting-provider";
+import { BookActionBar, ScrollProgressBar } from "./book-action-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -63,21 +64,63 @@ export default async function BookDetailPage({ params }: PageProps) {
     }
   }
 
+  // JSON-LD structured data (Book schema)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Book",
+    "name": book.title,
+    "description": book.description || book.excerpt || "",
+    "author": book.author ? {
+      "@type": "Person",
+      "name": book.author.name,
+      "url": `${process.env.NEXT_PUBLIC_SITE_URL || ""}/authors/${book.author.slug}`,
+    } : undefined,
+    "genre": book.category?.name,
+    "inLanguage": book.language || "id",
+    "numberOfPages": book.pages,
+    "datePublished": book.publishedYear ? `${book.publishedYear}-01-01` : undefined,
+    "publisher": book.publisher ? { "@type": "Organization", "name": book.publisher } : undefined,
+    "isbn": book.isbn,
+    "image": book.coverImage || undefined,
+    "url": `${process.env.NEXT_PUBLIC_SITE_URL || ""}/books/${book.slug}`,
+    "aggregateRating": book.views > 0 ? {
+      "@type": "AggregateRating",
+      "ratingValue": Math.min(5, 3 + Math.log10(book.views + 1)).toFixed(1),
+      "ratingCount": book.views,
+    } : undefined,
+  };
+
+  // Determine if the book has a reader-ready file (PDF/EPUB) or video/audio
+  const hasPdfOrEpub = book.files.some((f) => f.format === "PDF" || f.format === "EPUB");
+  const hasMedia = !!book.videoUrl || !!book.audioUrl;
+  const hasReaderFile = hasPdfOrEpub || hasMedia;
+
   return (
     <SettingProvider bookId={book.id}>
+      <ScrollProgressBar />
       <article className="relative">
         {/* Hero */}
         <div className="relative overflow-hidden bg-gradient-to-br from-emerald-deep via-primary to-emerald-deep pb-16 sm:pb-24">
           <div className="absolute inset-0 islamic-pattern opacity-30" />
-          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
             <Link
               href="/books"
-              className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors mb-6"
+              className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors mb-5"
             >
               <ArrowLeft className="h-4 w-4" /> Kembali ke Koleksi
             </Link>
 
-            <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr] gap-8 lg:gap-12">
+            <BookActionBar
+              bookId={book.id}
+              bookSlug={book.slug}
+              bookTitle={book.title}
+              authorName={book.author?.name}
+              readingTime={book.readingTime}
+              category={book.category ? { name: book.category.name, slug: book.category.slug } : null}
+              hasReaderFile={hasReaderFile}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr] gap-8 lg:gap-12 mt-6">
               {/* Cover */}
               <div className="mx-auto md:mx-0 max-w-[280px] w-full">
                 <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white/10">
@@ -273,6 +316,12 @@ export default async function BookDetailPage({ params }: PageProps) {
             </div>
           </section>
         )}
+
+        {/* JSON-LD structured data (Book schema) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </article>
     </SettingProvider>
   );

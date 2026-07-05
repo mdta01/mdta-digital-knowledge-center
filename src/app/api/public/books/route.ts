@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get("search") || undefined;
   const categoryId = searchParams.get("categoryId") || undefined;
   const authorId = searchParams.get("authorId") || undefined;
+  const collectionType = searchParams.get("collectionType") || undefined;
 
   const result = await bookService.listPublished({
     page,
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
     search,
     categoryId: categoryId || undefined,
     authorId: authorId || undefined,
+    collectionType: collectionType || undefined,
   });
   return NextResponse.json(result);
 }

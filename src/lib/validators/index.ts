@@ -30,6 +30,12 @@ export const createBookSchema = z.object({
   categoryId: z.string().min(1, "Kategori wajib dipilih"),
   authorId: z.string().min(1, "Penulis wajib dipilih"),
   tagIds: z.array(z.string()).optional().default([]),
+  // V2 fields
+  collectionType: z.enum(["BOOK", "KITAB", "ARTICLE", "VIDEO", "AUDIO", "DOCUMENT", "DINIYAH"]).default("BOOK"),
+  videoUrl: z.string().url().optional().or(z.literal("")).nullable(),
+  audioUrl: z.string().url().optional().or(z.literal("")).nullable(),
+  duration: z.coerce.number().int().positive().optional().nullable(),
+  excerpt: z.string().max(500).optional().nullable(),
 });
 
 export const updateBookSchema = createBookSchema.partial();
@@ -123,4 +129,67 @@ export const settingsSchema = z.object({
   googleAnalytics: z.string().max(30).optional().or(z.literal("")),
   islamicQuote: z.string().max(500).optional(),
   quoteAuthor: z.string().max(120).optional(),
+  // V2 — Theme customizer
+  themeBgColor: z.string().max(20).optional().or(z.literal("")),
+  themeHeroImage: z.string().optional().or(z.literal("")),
+  themeFontHeading: z.enum(["serif", "sans", "arabic"]).optional(),
+  themeFontBody: z.enum(["serif", "sans", "arabic"]).optional(),
+  themeBorderRadius: z.coerce.number().min(0).max(32).optional(),
 });
+
+/** V2 — Theme customizer */
+export const themeCustomizerSchema = z.object({
+  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  heroImage: z.string().url().optional().or(z.literal("")),
+  fontHeading: z.enum(["serif", "sans", "arabic"]).optional(),
+  fontBody: z.enum(["serif", "sans", "arabic"]).optional(),
+  borderRadius: z.coerce.number().min(0).max(32).optional(),
+  siteName: z.string().max(120).optional(),
+  siteLogo: z.string().optional().or(z.literal("")),
+  siteFavicon: z.string().optional().or(z.literal("")),
+  footerText: z.string().max(500).optional(),
+});
+
+/** V2 — Maintenance mode */
+export const maintenanceSchema = z.object({
+  enabled: z.boolean().default(false),
+  message: z.string().max(500).optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  whitelistedIps: z.string().optional(), // comma-separated
+});
+
+/** V2 — Notification */
+export const createNotificationSchema = z.object({
+  type: z.string().min(1),
+  title: z.string().min(1).max(200),
+  message: z.string().min(1).max(1000),
+  level: z.enum(["info", "success", "warning", "error"]).default("info"),
+  userId: z.string().optional().nullable(),
+  metadata: z.string().optional().nullable(),
+});
+
+/** V2 — Bookmark */
+export const bookmarkSchema = z.object({
+  bookId: z.string().min(1),
+  note: z.string().max(500).optional().nullable(),
+});
+
+/** V2 — Reading progress */
+export const readingProgressSchema = z.object({
+  bookId: z.string().min(1),
+  progress: z.coerce.number().min(0).max(1),
+  lastPage: z.coerce.number().int().min(0).optional().default(0),
+});
+
+/** V2 — Analytics event */
+export const analyticsEventSchema = z.object({
+  type: z.enum(["PAGE_VIEW", "DOWNLOAD", "READ", "SEARCH", "SHARE"]),
+  entity: z.string().optional(),
+  entityId: z.string().optional(),
+  path: z.string().optional(),
+  referrer: z.string().optional(),
+});
+

@@ -78,4 +78,18 @@ export const SETTING_KEYS = {
   GOOGLE_ANALYTICS: "analytics.ga_id",
   ISLAMIC_QUOTE: "content.islamic_quote",
   QUOTE_AUTHOR: "content.quote_author",
+  // V2 — Theme customizer
+  THEME_BG_COLOR: "theme.bg_color",
+  THEME_HERO_IMAGE: "theme.hero_image",
+  THEME_FONT_HEADING: "theme.font_heading",
+  THEME_FONT_BODY: "theme.font_body",
+  THEME_BORDER_RADIUS: "theme.border_radius",
+  // V2 — Maintenance
+  MAINTENANCE_ENABLED: "maintenance.enabled",
+  MAINTENANCE_MESSAGE: "maintenance.message",
+  MAINTENANCE_START: "maintenance.start",
+  MAINTENANCE_END: "maintenance.end",
+  MAINTENANCE_WHITELIST_IPS: "maintenance.whitelist_ips",
+  // V2 — Branding
+  APP_CONCEPT: "app.concept", // "Islamic Knowledge Center"
 } as const;

@@ -29,26 +29,30 @@ const amiri = Amiri({
   weight: ["400", "700"],
 });
 
-const SITE_NAME = "Perpustakaan Digital MDTA MIFTAHUL ULUM 01";
+const SITE_NAME = "Islamic Knowledge Center — MDTA MIFTAHUL ULUM 01";
 const SITE_DESCRIPTION =
-  "Perpustakaan Digital Islami Modern MDTA MIFTAHUL ULUM 01 — Koleksi kitab klasik, modul pembelajaran, materi diniyah, dan buku digital berbahasa Arab & Indonesia.";
+  "Islamic Knowledge Center MDTA MIFTAHUL ULUM 01 — Pusat pengetahuan Islam modern: kitab klasik, buku, artikel, audio, video, dan materi diniyah. Gratis, tanpa login, dapat diinstal sebagai PWA.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
   ),
   title: {
-    default: `${SITE_NAME} — Perpustakaan Digital Islami`,
+    default: `${SITE_NAME} — Pusat Pengetahuan Islam Modern`,
     template: `%s — ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   keywords: [
-    "perpustakaan digital",
-    "islami",
+    "islamic knowledge center",
+    "perpustakaan digital islami",
     "MDTA MIFTAHUL ULUM",
     "kitab kuning",
     "diniyah",
     "buku islami",
+    "kitab klasik",
+    "artikel islam",
+    "kajian audio",
+    "video dakwah",
     "fiqih",
     "aqidah",
     "tafsir",
@@ -60,11 +64,11 @@ export const metadata: Metadata = {
   creator: "MDTA MIFTAHUL ULUM 01",
   publisher: "MDTA MIFTAHUL ULUM 01",
   manifest: "/manifest.webmanifest",
-  applicationName: SITE_NAME,
+  applicationName: "Islamic Knowledge Center",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: SITE_NAME,
+    title: "Islamic Knowledge Center",
   },
   formatDetection: { telephone: false },
   icons: {

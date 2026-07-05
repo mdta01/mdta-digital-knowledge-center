@@ -55,6 +55,11 @@ import {
   Pilcrow,
   Languages,
   Loader2,
+  Columns,
+  Footprints,
+  Hash,
+  BookOpen,
+  ScrollText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +106,30 @@ const HIGHLIGHTS = [
   "#c4b5fd", "#a78bfa", "#8b5cf6", "#fbcfe8", "#f9a8d4", "#ec4899",
 ];
 
+/** Parse a combined HTML value into { arabic, translation } if it uses split divs. */
+function parseSplitContent(html: string): { arabic: string; translation: string } | null {
+  if (!html) return null;
+  if (!html.includes("split-arabic") && !html.includes("split-translation")) return null;
+  try {
+    if (typeof window === "undefined") return null;
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = html;
+    const ar = wrapper.querySelector(".split-arabic");
+    const tr = wrapper.querySelector(".split-translation");
+    return {
+      arabic: ar ? ar.innerHTML : "",
+      translation: tr ? tr.innerHTML : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Combine arabic + translation into a single HTML string. */
+function buildSplitContent(arabic: string, translation: string): string {
+  return `<div class="split-arabic" dir="rtl">${arabic}</div><div class="split-translation" dir="ltr">${translation}</div>`;
+}
+
 export function RichTextEditor({
   value,
   onChange,
@@ -111,7 +140,18 @@ export function RichTextEditor({
   const [isUploading, setIsUploading] = useState(false);
   const [rtlMode, setRtlMode] = useState(false);
   const [arabicMode, setArabicMode] = useState(false);
+  const [splitMode, setSplitMode] = useState(false);
+  const [footnoteText, setFootnoteText] = useState("");
+  const [footnoteOpen, setFootnoteOpen] = useState(false);
+  const [footnoteCount, setFootnoteCount] = useState(0);
   const editorRef = useRef<Editor | null>(null);
+  const splitArabicRef = useRef<Editor | null>(null);
+  const splitModeRef = useRef(false);
+  const lastEmittedRef = useRef<string>("");
+
+  // Detect existing split content on mount
+  const initialParsed = typeof window !== "undefined" ? parseSplitContent(value) : null;
+  const initialIsSplit = !!initialParsed;
 
   const editor = useEditor({
     extensions: [
@@ -150,12 +190,12 @@ export function RichTextEditor({
       CodeBlockLowlight.configure({ lowlight }),
       CharacterCount,
       Placeholder.configure({
-        placeholder,
+        placeholder: splitMode ? "Terjemahan / latin…" : placeholder,
         emptyEditorClass:
           "before:content-[attr(data-placeholder)] before:text-muted-foreground/60 before:float-left before:h-0 before:pointer-events-none",
       }),
     ],
-    content: value || "",
+    content: initialIsSplit ? (initialParsed?.translation ?? "") : value || "",
     editorProps: {
       attributes: {
         class: "prose-kitap max-w-none focus:outline-none min-h-[var(--editor-min-height)] px-5 py-4",
@@ -164,27 +204,100 @@ export function RichTextEditor({
       },
     },
     onUpdate: ({ editor: e }) => {
-      onChange(e.getHTML());
+      if (splitModeRef.current) {
+        const ar = splitArabicRef.current?.getHTML() ?? "";
+        const tr = e.getHTML();
+        const combined = buildSplitContent(ar, tr);
+        lastEmittedRef.current = combined;
+        onChange(combined);
+      } else {
+        const html = e.getHTML();
+        lastEmittedRef.current = html;
+        onChange(html);
+      }
+    },
+  });
+
+  // Split-mode arabic editor (RTL)
+  const splitArabicEditor = useEditor({
+    extensions: [
+      StarterKit.configure({ codeBlock: false, heading: { levels: [1, 2, 3] } }),
+      Underline, Subscript, Superscript, TextStyle, Color,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+        alignments: ["left", "center", "right", "justify"],
+      }),
+      Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-primary underline" } }),
+      Image.configure({ HTMLAttributes: { class: "rounded-xl max-w-full h-auto" } }),
+      Typography, CharacterCount,
+      Placeholder.configure({
+        placeholder: "Teks Arab (RTL)…",
+        emptyEditorClass:
+          "before:content-[attr(data-placeholder)] before:text-muted-foreground/60 before:float-left before:h-0 before:pointer-events-none",
+      }),
+    ],
+    content: initialParsed?.arabic ?? "",
+    editorProps: {
+      attributes: {
+        class: "prose-kitap font-arabic max-w-none focus:outline-none min-h-[300px] px-5 py-4",
+        dir: "rtl",
+        style: "font-family: var(--font-arabic), serif; line-height: 2.2; font-size: 1.2em;",
+      },
+    },
+    onUpdate: () => {
+      const ar = splitArabicRef.current?.getHTML() ?? "";
+      const tr = editorRef.current?.getHTML() ?? "";
+      const combined = buildSplitContent(ar, tr);
+      lastEmittedRef.current = combined;
+      onChange(combined);
     },
   });
 
   useEffect(() => {
     editorRef.current = editor;
+    splitArabicRef.current = splitArabicEditor;
     return () => {
       editorRef.current = null;
+      splitArabicRef.current = null;
     };
-  }, [editor]);
+  }, [editor, splitArabicEditor]);
+
+  // Initialize footnote count from existing content
+  useEffect(() => {
+    if (typeof document === "undefined" || !value) return;
+    try {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = value;
+      const sups = wrapper.querySelectorAll('sup[data-footnote]');
+      setFootnoteCount(sups.length);
+    } catch {
+      // ignore
+    }
+  }, [value]);
 
   // Sync external value changes (e.g. form reset) without losing caret on each keystroke
   useEffect(() => {
     if (!editor) return;
     if (value === undefined || value === null) return;
-    const current = editor.getHTML();
-    if (value !== current && document.activeElement?.tagName !== "TEXTAREA") {
-      // Only set when not focused to avoid caret jump
-      editor.commands.setContent(value || "", false);
+    if (value === lastEmittedRef.current) return;
+    const parsed = parseSplitContent(value);
+    if (parsed) {
+      // external split content
+      setSplitMode(true);
+      if (splitArabicEditor && splitArabicEditor.getHTML() !== parsed.arabic) {
+        splitArabicEditor.commands.setContent(parsed.arabic || "", false);
+      }
+      if (editor.getHTML() !== parsed.translation) {
+        editor.commands.setContent(parsed.translation || "", false);
+      }
+    } else {
+      const current = editor.getHTML();
+      if (value !== current && document.activeElement?.tagName !== "TEXTAREA") {
+        editor.commands.setContent(value || "", false);
+      }
     }
-  }, [value, editor]);
+  }, [value, editor, splitArabicEditor]);
 
   // Apply RTL mode to editor
   useEffect(() => {
@@ -261,6 +374,81 @@ export function RichTextEditor({
   const insertTable = useCallback(() => {
     if (!editor) return;
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+  }, [editor]);
+
+  // Insert footnote
+  const insertFootnote = useCallback(() => {
+    if (!editor) return;
+    const n = footnoteCount + 1;
+    editor
+      .chain()
+      .focus()
+      .insertContent(
+        `<sup data-footnote="${n}" class="text-primary font-semibold cursor-pointer" title="${footnoteText.replace(/"/g, "&quot;")}">${n}</sup>`
+      )
+      .run();
+    setFootnoteCount(n);
+    setFootnoteText("");
+    setFootnoteOpen(false);
+  }, [editor, footnoteCount, footnoteText]);
+
+  // Insert chapter number
+  const insertChapter = useCallback(() => {
+    if (!editor) return;
+    // Count existing chapters in document
+    let count = 0;
+    try {
+      const html = editor.getHTML();
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = html;
+      count = wrapper.querySelectorAll("span.chapter-num").length;
+    } catch {
+      // ignore
+    }
+    const n = count + 1;
+    editor
+      .chain()
+      .focus()
+      .insertContent(
+        `<span class="chapter-num" data-level="1" style="display:inline-block; padding:2px 10px; margin:0 4px; background:rgba(5,150,105,0.12); color:#059669; border-radius:9999px; font-weight:600; font-size:0.85em;">Bab ${n}</span> `
+      )
+      .run();
+  }, [editor]);
+
+  // Insert verse number
+  const insertVerse = useCallback(() => {
+    if (!editor) return;
+    let count = 0;
+    try {
+      const html = editor.getHTML();
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = html;
+      count = wrapper.querySelectorAll("span.verse-num").length;
+    } catch {
+      // ignore
+    }
+    const n = count + 1;
+    editor
+      .chain()
+      .focus()
+      .insertContent(
+        `<span class="verse-num" style="display:inline-block; padding:1px 6px; margin:0 2px; background:rgba(212,175,55,0.18); color:#92660f; border-radius:4px; font-size:0.8em; font-weight:600;">[${n}]</span> `
+      )
+      .run();
+  }, [editor]);
+
+  // Insert hadith number
+  const insertHadith = useCallback(() => {
+    if (!editor) return;
+    const num = window.prompt("Masukkan nomor hadits:", "123");
+    if (!num) return;
+    editor
+      .chain()
+      .focus()
+      .insertContent(
+        `<span class="hadith-num" style="display:inline-block; padding:1px 8px; margin:0 4px; background:rgba(139,92,246,0.15); color:#7c3aed; border-radius:6px; font-size:0.8em; font-weight:600;">No. ${num.replace(/</g, "&lt;")}</span> `
+      )
+      .run();
   }, [editor]);
 
   if (!editor) {
@@ -407,8 +595,87 @@ export function RichTextEditor({
 
         <ToolbarDivider />
 
-        {/* RTL / Arabic Mode */}
+        {/* Islamic / Kitab toolbar */}
+        <Popover open={footnoteOpen} onOpenChange={setFootnoteOpen}>
+          <PopoverTrigger asChild>
+            <ToolbarButtonRaw tooltip="Sisipkan Footnote" active={false}>
+              <Footprints className="h-4 w-4" />
+            </ToolbarButtonRaw>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-3 space-y-2">
+            <Label className="text-xs">Teks Footnote</Label>
+            <Input
+              value={footnoteText}
+              onChange={(e) => setFootnoteText(e.target.value)}
+              placeholder="Catatan kaki…"
+              className="text-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  insertFootnote();
+                }
+              }}
+            />
+            <Button size="sm" className="w-full" onClick={insertFootnote}>
+              Sisipkan sebagai superscript
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Nomor footnote akan di-auto-increment ({footnoteCount + 1} berikutnya).
+            </p>
+          </PopoverContent>
+        </Popover>
+        <ToolbarButton icon={Hash} tooltip="Sisipkan Nomor Bab" onClick={insertChapter} />
+        <ToolbarButton icon={BookOpen} tooltip="Sisipkan Nomor Ayat" onClick={insertVerse} />
+        <ToolbarButton icon={ScrollText} tooltip="Sisipkan Nomor Hadits" onClick={insertHadith} />
+
+        <ToolbarDivider />
+
+        {/* Split View + RTL / Arabic Mode */}
         <div className="flex items-center gap-2 ml-auto pl-1">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary/60">
+            <Columns className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-[11px] font-medium text-muted-foreground">Split</span>
+            <Switch
+              checked={splitMode}
+              onCheckedChange={(v) => {
+                setSplitMode(v);
+                splitModeRef.current = v;
+                if (v) {
+                  // when enabling split, parse current content
+                  const parsed = parseSplitContent(editor.getHTML());
+                  if (parsed) {
+                    splitArabicEditor?.commands.setContent(parsed.arabic || "", false);
+                    editor.commands.setContent(parsed.translation || "", false);
+                  } else {
+                    // move existing content to translation, clear arabic
+                    const current = editor.getHTML();
+                    splitArabicEditor?.commands.setContent("", false);
+                    editor.commands.setContent(current, false);
+                  }
+                } else {
+                  // when disabling split, parse combined content back to single
+                  const ar = splitArabicEditor?.getHTML() ?? "";
+                  const tr = editor.getHTML();
+                  if (ar.trim() && ar !== "<p></p>" && tr.trim() && tr !== "<p></p>") {
+                    // combine into one — keep arabic at top, translation below
+                    const combined = `${ar}<hr class="my-4 border-border/60" />${tr}`;
+                    editor.commands.setContent(combined, false);
+                    onChange(combined);
+                    lastEmittedRef.current = combined;
+                  } else if (ar.trim() && ar !== "<p></p>") {
+                    editor.commands.setContent(ar, false);
+                    onChange(ar);
+                    lastEmittedRef.current = ar;
+                  } else if (tr.trim() && tr !== "<p></p>") {
+                    editor.commands.setContent(tr, false);
+                    onChange(tr);
+                    lastEmittedRef.current = tr;
+                  }
+                }
+              }}
+              className="scale-75 origin-center"
+            />
+          </div>
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary/60">
             <Languages className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-[11px] font-medium text-muted-foreground">RTL</span>
@@ -439,7 +706,25 @@ export function RichTextEditor({
             </div>
           </div>
         )}
-        <EditorContent editor={editor} />
+
+        {splitMode ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border/60">
+            <div>
+              <div className="px-5 py-2 bg-secondary/40 border-b border-border/60 text-[11px] font-medium text-muted-foreground flex items-center gap-2">
+                <Languages className="h-3.5 w-3.5" /> Teks Arab (RTL)
+              </div>
+              {splitArabicEditor && <EditorContent editor={splitArabicEditor} />}
+            </div>
+            <div>
+              <div className="px-5 py-2 bg-secondary/40 border-b border-border/60 text-[11px] font-medium text-muted-foreground flex items-center gap-2">
+                <BookOpen className="h-3.5 w-3.5" /> Terjemahan / Latin
+              </div>
+              <EditorContent editor={editor} />
+            </div>
+          </div>
+        ) : (
+          <EditorContent editor={editor} />
+        )}
       </div>
 
       {/* Status bar */}
@@ -447,8 +732,10 @@ export function RichTextEditor({
         <div className="flex items-center gap-3">
           <span>{editor.storage.characterCount?.characters?.() ?? 0} karakter</span>
           <span>{editor.storage.characterCount?.words?.() ?? 0} kata</span>
+          {footnoteCount > 0 && <span>{footnoteCount} footnote</span>}
         </div>
         <div className="flex items-center gap-2">
+          {splitMode && <span className="text-emerald-600 font-medium">Split Aktif</span>}
           {rtlMode && <span className="text-amber-600 font-medium">RTL Aktif</span>}
           {arabicMode && <span className="text-emerald-600 font-medium">Mode Arab</span>}
           <span>HTML</span>

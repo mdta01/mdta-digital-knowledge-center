@@ -14,6 +14,11 @@ import {
   bookFileRepository,
   contactMessageRepository,
   tagRepository,
+  notificationRepository,
+  bookmarkRepository,
+  readingProgressRepository,
+  analyticsEventRepository,
+  bookRevisionRepository,
   SETTING_KEYS,
 } from "@/lib/repositories";
 import type {
@@ -33,11 +38,12 @@ export const bookService = {
   async getBySlug(slug: string) {
     return bookRepository.findBySlug(slug);
   },
-  async listPublished(params: { page?: number; pageSize?: number; search?: string; categoryId?: string; authorId?: string; tagId?: string } = {}) {
+  async listPublished(params: { page?: number; pageSize?: number; search?: string; categoryId?: string; authorId?: string; tagId?: string; collectionType?: string } = {}) {
     const where: Record<string, unknown> = { status: "PUBLISHED" };
     if (params.categoryId) where.categoryId = params.categoryId;
     if (params.authorId) where.authorId = params.authorId;
     if (params.tagId) where.tags = { some: { id: params.tagId } };
+    if (params.collectionType) where.collectionType = params.collectionType;
     return bookRepository.findAll({
       where,
       page: params.page,
@@ -47,9 +53,10 @@ export const bookService = {
       orderBy: { createdAt: "desc" },
     });
   },
-  async listAll(params: { page?: number; pageSize?: number; search?: string; status?: string } = {}) {
+  async listAll(params: { page?: number; pageSize?: number; search?: string; status?: string; collectionType?: string } = {}) {
     const where: Record<string, unknown> = {};
     if (params.status) where.status = params.status;
+    if (params.collectionType) where.collectionType = params.collectionType;
     return bookRepository.findAll({
       where,
       page: params.page,
@@ -78,10 +85,19 @@ export const bookService = {
   },
   async create(data: CreateBookInput) {
     if (!data.slug) data.slug = slugify(data.title);
+    // Auto-compute reading time if content provided (avg 200 wpm)
+    if (data.content && !data.readingTime) {
+      const words = data.content.replace(/<[^>]*>/g, " ").trim().split(/\s+/).length;
+      (data as any).readingTime = Math.max(1, Math.round(words / 200));
+    }
     return bookRepository.create(data);
   },
   async update(id: string, data: UpdateBookInput) {
     if (data.title && !data.slug) data.slug = slugify(data.title);
+    if (data.content && !data.readingTime) {
+      const words = data.content.replace(/<[^>]*>/g, " ").trim().split(/\s+/).length;
+      (data as any).readingTime = Math.max(1, Math.round(words / 200));
+    }
     return bookRepository.update(id, data);
   },
   async softDelete(id: string) {
@@ -91,7 +107,7 @@ export const bookService = {
     return bookRepository.restore(id);
   },
   async stats() {
-    const [total, published, draft, featured, totalViews, totalDownloads] =
+    const [total, published, draft, featured, totalViews, totalDownloads, byType] =
       await Promise.all([
         db.book.count({ where: { deletedAt: null } }),
         db.book.count({ where: { deletedAt: null, status: "PUBLISHED" } }),
@@ -99,6 +115,11 @@ export const bookService = {
         db.book.count({ where: { deletedAt: null, featured: true } }),
         db.book.aggregate({ _sum: { views: true } }),
         db.book.aggregate({ _sum: { downloads: true } }),
+        db.book.groupBy({
+          by: ["collectionType"],
+          where: { deletedAt: null },
+          _count: { _all: true },
+        }),
       ]);
     return {
       total,
@@ -107,6 +128,7 @@ export const bookService = {
       featured,
       totalViews: totalViews._sum.views ?? 0,
       totalDownloads: totalDownloads._sum.downloads ?? 0,
+      byType: Object.fromEntries(byType.map((t) => [t.collectionType, t._count._all])),
     };
   },
 };
@@ -244,6 +266,12 @@ export const settingService = {
       googleAnalytics: json[SETTING_KEYS.GOOGLE_ANALYTICS] ?? "",
       islamicQuote: json[SETTING_KEYS.ISLAMIC_QUOTE] ?? "Membaca adalah kunci pembuka pintu kebijaksanaan.",
       quoteAuthor: json[SETTING_KEYS.QUOTE_AUTHOR] ?? "Imam Al-Ghazali",
+      // V2 — Theme customizer
+      themeBgColor: json[SETTING_KEYS.THEME_BG_COLOR] ?? "#fafaf9",
+      themeHeroImage: json[SETTING_KEYS.THEME_HERO_IMAGE] ?? "",
+      themeFontHeading: json[SETTING_KEYS.THEME_FONT_HEADING] ?? "serif",
+      themeFontBody: json[SETTING_KEYS.THEME_FONT_BODY] ?? "sans",
+      themeBorderRadius: json[SETTING_KEYS.THEME_BORDER_RADIUS] ?? "16",
     };
   },
   async updateAll(values: Record<string, string>) {
@@ -267,6 +295,12 @@ export const settingService = {
       googleAnalytics: SETTING_KEYS.GOOGLE_ANALYTICS,
       islamicQuote: SETTING_KEYS.ISLAMIC_QUOTE,
       quoteAuthor: SETTING_KEYS.QUOTE_AUTHOR,
+      // V2 — Theme customizer
+      themeBgColor: SETTING_KEYS.THEME_BG_COLOR,
+      themeHeroImage: SETTING_KEYS.THEME_HERO_IMAGE,
+      themeFontHeading: SETTING_KEYS.THEME_FONT_HEADING,
+      themeFontBody: SETTING_KEYS.THEME_FONT_BODY,
+      themeBorderRadius: SETTING_KEYS.THEME_BORDER_RADIUS,
     };
     await Promise.all(
       Object.entries(map).map(([k, settingKey]) =>
@@ -347,7 +381,7 @@ export const tagService = {
 // ---------- DASHBOARD STATS ----------
 export const dashboardService = {
   async getOverview() {
-    const [bookStats, authorCount, categoryCount, userCount, messageCount, recentActivity, popularBooks] =
+    const [bookStats, authorCount, categoryCount, userCount, messageCount, recentActivity, popularBooks, recentUploads, unreadNotifications, storageStats] =
       await Promise.all([
         bookService.stats(),
         authorService.stats(),
@@ -355,7 +389,13 @@ export const dashboardService = {
         userService.stats(),
         db.contactMessage.count(),
         activityLogRepository.findAll({ pageSize: 8 }),
-        bookRepository.findPopular(5),
+        db.upload.findMany({
+          where: { deletedAt: null },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        }),
+        db.notification.count({ where: { isRead: false } }),
+        db.upload.aggregate({ _sum: { size: true } }),
       ]);
     return {
       books: bookStats,
@@ -365,7 +405,213 @@ export const dashboardService = {
       messages: messageCount,
       recentActivity: recentActivity.data,
       popularBooks,
+      recentUploads,
+      unreadNotifications,
+      storageUsed: storageStats?._sum?.size ?? 0,
     };
+  },
+};
+
+// ---------- V2: NOTIFICATION SERVICE ----------
+export const notificationService = {
+  async notify(params: {
+    type: string;
+    title: string;
+    message: string;
+    level?: string;
+    userId?: string | null;
+    metadata?: Record<string, unknown> | null;
+  }) {
+    try {
+      return await notificationRepository.create({
+        type: params.type,
+        title: params.title,
+        message: params.message,
+        level: params.level,
+        userId: params.userId,
+        metadata: params.metadata ? JSON.stringify(params.metadata) : null,
+      });
+    } catch (e) {
+      console.error("[notification] failed:", e);
+    }
+  },
+  async list(params: { page?: number; pageSize?: number; userId?: string; isRead?: boolean } = {}) {
+    return notificationRepository.findAll(params);
+  },
+  async markAsRead(id: string) {
+    return notificationRepository.markAsRead(id);
+  },
+  async markAllAsRead(userId?: string) {
+    return notificationRepository.markAllAsRead(userId);
+  },
+  async delete(id: string) {
+    return notificationRepository.delete(id);
+  },
+};
+
+// ---------- V2: BOOKMARK SERVICE ----------
+export const bookmarkService = {
+  async toggle(bookId: string, sessionId: string, note?: string) {
+    const exists = await bookmarkRepository.isBookmarked(bookId, sessionId);
+    if (exists) {
+      await bookmarkRepository.delete(bookId, sessionId);
+      return { bookmarked: false };
+    }
+    await bookmarkRepository.upsert({ bookId, sessionId, note });
+    return { bookmarked: true };
+  },
+  async isBookmarked(bookId: string, sessionId: string) {
+    return bookmarkRepository.isBookmarked(bookId, sessionId);
+  },
+  async listBySession(sessionId: string) {
+    return bookmarkRepository.findBySession(sessionId);
+  },
+};
+
+// ---------- V2: READING PROGRESS SERVICE ----------
+export const readingProgressService = {
+  async upsert(bookId: string, sessionId: string, progress: number, lastPage?: number) {
+    return readingProgressRepository.upsert({ bookId, sessionId, progress, lastPage });
+  },
+  async get(bookId: string, sessionId: string) {
+    return readingProgressRepository.find(bookId, sessionId);
+  },
+  async listBySession(sessionId: string) {
+    return readingProgressRepository.findBySession(sessionId);
+  },
+};
+
+// ---------- V2: ANALYTICS SERVICE ----------
+export const analyticsService = {
+  async track(params: Parameters<typeof analyticsEventRepository.create>[0]) {
+    try {
+      return await analyticsEventRepository.create(params);
+    } catch (e) {
+      console.error("[analytics] track failed:", e);
+    }
+  },
+  async stats() {
+    return analyticsEventRepository.stats();
+  },
+};
+
+// ---------- V2: BOOK REVISION SERVICE ----------
+export const revisionService = {
+  async saveRevision(params: {
+    bookId: string;
+    content: string;
+    title: string;
+    message?: string;
+    userId: string;
+  }) {
+    return bookRevisionRepository.create(params);
+  },
+  async listByBook(bookId: string, limit = 20) {
+    return bookRevisionRepository.findByBookId(bookId, limit);
+  },
+  async getById(id: string) {
+    return bookRevisionRepository.findById(id);
+  },
+  async delete(id: string) {
+    return bookRevisionRepository.delete(id);
+  },
+};
+
+// ---------- V2: MAINTENANCE MODE SERVICE ----------
+export const maintenanceService = {
+  async getStatus() {
+    const enabled = (await settingRepository.get(SETTING_KEYS.MAINTENANCE_ENABLED)) === "true";
+    const message = (await settingRepository.get(SETTING_KEYS.MAINTENANCE_MESSAGE)) || "";
+    const start = (await settingRepository.get(SETTING_KEYS.MAINTENANCE_START)) || "";
+    const end = (await settingRepository.get(SETTING_KEYS.MAINTENANCE_END)) || "";
+    const whitelist = (await settingRepository.get(SETTING_KEYS.MAINTENANCE_WHITELIST_IPS)) || "";
+    return { enabled, message, start, end, whitelistedIps: whitelist };
+  },
+  async setStatus(data: { enabled: boolean; message?: string; start?: string; end?: string; whitelistedIps?: string }) {
+    await settingRepository.set(SETTING_KEYS.MAINTENANCE_ENABLED, String(data.enabled));
+    await settingRepository.set(SETTING_KEYS.MAINTENANCE_MESSAGE, data.message || "");
+    await settingRepository.set(SETTING_KEYS.MAINTENANCE_START, data.start || "");
+    await settingRepository.set(SETTING_KEYS.MAINTENANCE_END, data.end || "");
+    await settingRepository.set(SETTING_KEYS.MAINTENANCE_WHITELIST_IPS, data.whitelistedIps || "");
+  },
+  async isIpWhitelisted(ip: string): Promise<boolean> {
+    const status = await this.getStatus();
+    if (!status.whitelistedIps) return false;
+    const ips = status.whitelistedIps.split(",").map((s) => s.trim()).filter(Boolean);
+    return ips.includes(ip);
+  },
+};
+
+// ---------- V2: BACKUP SERVICE ----------
+export const backupService = {
+  async exportAll(): Promise<{
+    books: unknown[];
+    authors: unknown[];
+    categories: unknown[];
+    pages: unknown[];
+    settings: unknown[];
+    tags: unknown[];
+    uploads: unknown[];
+    users: Array<{ id: string; email: string; name: string; role: string; isActive: boolean }>;
+    activityLogs: unknown[];
+    contactMessages: unknown[];
+    exportedAt: string;
+    version: string;
+  }> {
+    const [books, authors, categories, pages, settings, tags, uploads, users, activityLogs, contactMessages] =
+      await Promise.all([
+        db.book.findMany({ where: { deletedAt: null }, include: { tags: true, files: true } }),
+        db.author.findMany({ where: { deletedAt: null } }),
+        db.category.findMany({ where: { deletedAt: null } }),
+        db.page.findMany({ where: { deletedAt: null } }),
+        db.setting.findMany(),
+        db.tag.findMany({ where: { deletedAt: null } }),
+        db.upload.findMany({ where: { deletedAt: null } }),
+        db.user.findMany({
+          where: { deletedAt: null },
+          select: { id: true, email: true, name: true, role: true, isActive: true },
+        }),
+        db.activityLog.findMany({ take: 1000 }),
+        db.contactMessage.findMany({ take: 1000 }),
+      ]);
+    return {
+      books,
+      authors,
+      categories,
+      pages,
+      settings,
+      tags,
+      uploads,
+      users,
+      activityLogs,
+      contactMessages,
+      exportedAt: new Date().toISOString(),
+      version: "2.0.0",
+    };
+  },
+};
+
+// ---------- V2: CACHE SERVICE (placeholder for in-memory + DB hint) ----------
+export const cacheService = {
+  async clearImageCache(): Promise<{ cleared: number }> {
+    // In a real app, this would clear a CDN or local image cache.
+    // Here we just signal the API to bump a cache-bust token in settings.
+    await settingRepository.set("cache.image_bust_token", Date.now().toString());
+    return { cleared: 1 };
+  },
+  async rebuildSearchIndex(): Promise<{ rebuilt: boolean }> {
+    // No-op for SQLite (FTS not configured). Returns success signal.
+    await settingRepository.set("cache.search_index_built_at", new Date().toISOString());
+    return { rebuilt: true };
+  },
+  async optimizeDatabase(): Promise<{ optimized: boolean }> {
+    // SQLite optimize: PRAGMA optimize
+    try {
+      await db.$executeRawUnsafe("PRAGMA optimize");
+      return { optimized: true };
+    } catch {
+      return { optimized: false };
+    }
   },
 };
 

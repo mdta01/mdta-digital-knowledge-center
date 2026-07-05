@@ -17,6 +17,14 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Save,
   Loader2,
@@ -27,6 +35,8 @@ import {
   Search as SearchIcon,
   BookOpen,
   ImageIcon,
+  Sparkles,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { UploadButton } from "@/components/admin/upload-button";
@@ -65,6 +75,11 @@ export function SettingsForm({ initial }: SettingsFormProps) {
   const favicon = watch("siteFavicon");
   const primaryColor = watch("primaryColor");
   const accentColor = watch("accentColor");
+  const themeBgColor = watch("themeBgColor");
+  const themeHeroImage = watch("themeHeroImage");
+  const themeFontHeading = watch("themeFontHeading");
+  const themeFontBody = watch("themeFontBody");
+  const themeBorderRadius = watch("themeBorderRadius");
 
   const onSubmit = async (data: FormValues) => {
     try {
@@ -87,6 +102,9 @@ export function SettingsForm({ initial }: SettingsFormProps) {
           </TabsTrigger>
           <TabsTrigger value="theme" className="rounded-xl gap-2">
             <Palette className="h-4 w-4" /> Tema
+          </TabsTrigger>
+          <TabsTrigger value="branding" className="rounded-xl gap-2">
+            <Sparkles className="h-4 w-4" /> Tema &amp; Branding
           </TabsTrigger>
           <TabsTrigger value="social" className="rounded-xl gap-2">
             <Share2 className="h-4 w-4" /> Sosial
@@ -273,6 +291,251 @@ export function SettingsForm({ initial }: SettingsFormProps) {
                     style={{ backgroundColor: accentColor }}
                   />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Theme & Branding (V2) */}
+        <TabsContent value="branding" className="space-y-6">
+          <Card className="glass rounded-3xl border-border/60">
+            <CardHeader>
+              <CardTitle className="font-serif text-lg flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" /> Branding Lanjutan
+              </CardTitle>
+              <CardDescription>
+                Kustomisasi tampilan situs lebih dalam: warna latar, gambar hero, tipografi, dan radius border.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <ColorField
+                id="themeBgColor"
+                label="Warna Latar Belakang"
+                value={themeBgColor || "#fafaf9"}
+                onChange={(v) => setValue("themeBgColor", v, { shouldValidate: true })}
+                register={register("themeBgColor")}
+              />
+
+              <div>
+                <Label htmlFor="themeHeroImage">Gambar Hero</Label>
+                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                  <div className="h-14 w-24 rounded-2xl overflow-hidden border border-border/60 bg-secondary/40 grid place-items-center shrink-0">
+                    {themeHeroImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={themeHeroImage} alt="Hero" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <Input
+                    id="themeHeroImage"
+                    {...register("themeHeroImage")}
+                    placeholder="/uploads/hero.jpg"
+                    className="flex-1 min-w-[200px]"
+                  />
+                  <UploadButton
+                    category="image"
+                    accept="image/*"
+                    label="Unggah"
+                    onUploaded={(url) => setValue("themeHeroImage", url, { shouldValidate: true })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="themeFontHeading">Font Heading</Label>
+                  <Select
+                    value={themeFontHeading || "serif"}
+                    onValueChange={(v) => setValue("themeFontHeading", v as "serif" | "sans" | "arabic", { shouldValidate: true })}
+                  >
+                    <SelectTrigger id="themeFontHeading" className="mt-1.5 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="serif">Serif (Lora)</SelectItem>
+                      <SelectItem value="sans">Sans (Plus Jakarta)</SelectItem>
+                      <SelectItem value="arabic">Arab (Amiri)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="themeFontBody">Font Body</Label>
+                  <Select
+                    value={themeFontBody || "sans"}
+                    onValueChange={(v) => setValue("themeFontBody", v as "serif" | "sans" | "arabic", { shouldValidate: true })}
+                  >
+                    <SelectTrigger id="themeFontBody" className="mt-1.5 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="serif">Serif (Lora)</SelectItem>
+                      <SelectItem value="sans">Sans (Plus Jakarta)</SelectItem>
+                      <SelectItem value="arabic">Arab (Amiri)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="themeBorderRadius">Radius Border</Label>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {Number(themeBorderRadius ?? 16)}px
+                  </span>
+                </div>
+                <Slider
+                  value={[Number(themeBorderRadius ?? 16)]}
+                  min={0}
+                  max={32}
+                  step={1}
+                  onValueChange={(v) => setValue("themeBorderRadius", v[0], { shouldValidate: true })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Live preview */}
+          <Card className="glass rounded-3xl border-border/60">
+            <CardHeader>
+              <CardTitle className="font-serif text-lg flex items-center gap-2">
+                <Eye className="h-5 w-5 text-primary" /> Pratinjau Langsung
+              </CardTitle>
+              <CardDescription>Contoh tampilan dengan pengaturan tema saat ini.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div
+                className="rounded-3xl border border-border/60 p-6 space-y-4"
+                style={{
+                  backgroundColor: themeBgColor || "#fafaf9",
+                  backgroundImage: themeHeroImage
+                    ? `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url(${themeHeroImage})`
+                    : undefined,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              >
+                <h3
+                  className="font-bold text-2xl text-white"
+                  style={{
+                    fontFamily:
+                      themeFontHeading === "serif"
+                        ? "var(--font-serif), serif"
+                        : themeFontHeading === "arabic"
+                        ? "var(--font-arabic), serif"
+                        : "var(--font-sans), sans-serif",
+                  }}
+                >
+                  Perpustakaan Digital MDTA MIFTAHUL ULUM
+                </h3>
+                <p
+                  className="text-sm text-white/90"
+                  style={{
+                    fontFamily:
+                      themeFontBody === "serif"
+                        ? "var(--font-serif), serif"
+                        : themeFontBody === "arabic"
+                        ? "var(--font-arabic), serif"
+                        : "var(--font-sans), sans-serif",
+                  }}
+                >
+                  Jelajahi ribuan kitab kuning, buku modern, dan kajian Islam.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    style={{
+                      backgroundColor: primaryColor || "#059669",
+                      borderRadius: `${Number(themeBorderRadius ?? 16)}px`,
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white"
+                  >
+                    Mulai Membaca
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      backgroundColor: accentColor || "#d4af37",
+                      borderRadius: `${Number(themeBorderRadius ?? 16)}px`,
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-black"
+                  >
+                    Jelajahi Koleksi
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Site Logo, Favicon, Footer (existing - moved here for convenience) */}
+          <Card className="glass rounded-3xl border-border/60">
+            <CardHeader>
+              <CardTitle className="font-serif text-lg flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-primary" /> Logo, Favicon &amp; Footer
+              </CardTitle>
+              <CardDescription>
+                Logo dan favicon juga dapat diatur di tab Umum. Footer ditampilkan di seluruh halaman.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="siteLogo-branding">Logo</Label>
+                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                  <div className="h-14 w-14 rounded-2xl overflow-hidden border border-border/60 bg-secondary/40 grid place-items-center shrink-0">
+                    {logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={logo} alt="Logo" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <Input
+                    id="siteLogo-branding"
+                    {...register("siteLogo")}
+                    placeholder="/uploads/logo.png"
+                    className="flex-1 min-w-[200px]"
+                  />
+                  <UploadButton
+                    category="image"
+                    accept="image/*"
+                    label="Unggah"
+                    onUploaded={(url) => setValue("siteLogo", url, { shouldValidate: true })}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="siteFavicon-branding">Favicon</Label>
+                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                  <div className="h-14 w-14 rounded-2xl overflow-hidden border border-border/60 bg-secondary/40 grid place-items-center shrink-0">
+                    {favicon ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={favicon} alt="Favicon" className="h-full w-full object-contain" />
+                    ) : (
+                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <Input
+                    id="siteFavicon-branding"
+                    {...register("siteFavicon")}
+                    placeholder="/uploads/favicon.ico"
+                    className="flex-1 min-w-[200px]"
+                  />
+                  <UploadButton
+                    category="image"
+                    accept="image/x-icon,image/png,image/svg+xml"
+                    label="Unggah"
+                    onUploaded={(url) => setValue("siteFavicon", url, { shouldValidate: true })}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="footerText-branding">Teks Footer</Label>
+                <Textarea
+                  id="footerText-branding"
+                  {...register("footerText")}
+                  className="mt-1.5"
+                  placeholder="© 2025 MDTA MIFTAHUL ULUM 01"
+                />
               </div>
             </CardContent>
           </Card>

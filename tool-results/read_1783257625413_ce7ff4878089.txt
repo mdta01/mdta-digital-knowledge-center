@@ -1,0 +1,816 @@
+     1→"use client";
+     2→
+     3→import * as React from "react";
+     4→import { useForm } from "react-hook-form";
+     5→import { zodResolver } from "@hookform/resolvers/zod";
+     6→import { settingsSchema } from "@/lib/validators";
+     7→import { z } from "zod";
+     8→import { Button } from "@/components/ui/button";
+     9→import { Input } from "@/components/ui/input";
+    10→import { Textarea } from "@/components/ui/textarea";
+    11→import { Label } from "@/components/ui/label";
+    12→import {
+    13→  Card,
+    14→  CardContent,
+    15→  CardHeader,
+    16→  CardTitle,
+    17→  CardDescription,
+    18→} from "@/components/ui/card";
+    19→import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+    20→import { Slider } from "@/components/ui/slider";
+    21→import {
+    22→  Select,
+    23→  SelectContent,
+    24→  SelectItem,
+    25→  SelectTrigger,
+    26→  SelectValue,
+    27→} from "@/components/ui/select";
+    28→import {
+    29→  Save,
+    30→  Loader2,
+    31→  Globe,
+    32→  Palette,
+    33→  Share2,
+    34→  MapPin,
+    35→  Search as SearchIcon,
+    36→  BookOpen,
+    37→  ImageIcon,
+    38→  Sparkles,
+    39→  Eye,
+    40→} from "lucide-react";
+    41→import { toast } from "sonner";
+    42→import { UploadButton } from "@/components/admin/upload-button";
+    43→import { apiFetch } from "@/components/admin/utils";
+    44→
+    45→type FormValues = z.infer<typeof settingsSchema>;
+    46→
+    47→const COLOR_PRESETS = [
+    48→  "#059669", // emerald
+    49→  "#0d9488", // teal
+    50→  "#16a34a", // green
+    51→  "#d4af37", // gold
+    52→  "#ca8a04", // amber
+    53→  "#dc2626", // red
+    54→  "#7c3aed", // violet
+    55→  "#2563eb", // blue
+    56→];
+    57→
+    58→interface SettingsFormProps {
+    59→  initial: FormValues;
+    60→}
+    61→
+    62→export function SettingsForm({ initial }: SettingsFormProps) {
+    63→  const {
+    64→    register,
+    65→    handleSubmit,
+    66→    setValue,
+    67→    watch,
+    68→    formState: { errors, isSubmitting },
+    69→  } = useForm<FormValues>({
+    70→    resolver: zodResolver(settingsSchema),
+    71→    defaultValues: initial,
+    72→  });
+    73→
+    74→  const logo = watch("siteLogo");
+    75→  const favicon = watch("siteFavicon");
+    76→  const primaryColor = watch("primaryColor");
+    77→  const accentColor = watch("accentColor");
+    78→  const themeBgColor = watch("themeBgColor");
+    79→  const themeHeroImage = watch("themeHeroImage");
+    80→  const themeFontHeading = watch("themeFontHeading");
+    81→  const themeFontBody = watch("themeFontBody");
+    82→  const themeBorderRadius = watch("themeBorderRadius");
+    83→
+    84→  const onSubmit = async (data: FormValues) => {
+    85→    try {
+    86→      await apiFetch("/api/admin/settings", {
+    87→        method: "PUT",
+    88→        body: JSON.stringify(data),
+    89→      });
+    90→      toast.success("Pengaturan berhasil disimpan");
+    91→    } catch (e: unknown) {
+    92→      toast.error(e instanceof Error ? e.message : "Gagal menyimpan pengaturan");
+    93→    }
+    94→  };
+    95→
+    96→  return (
+    97→    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    98→      <Tabs defaultValue="general" className="space-y-6">
+    99→        <TabsList className="w-full justify-start overflow-x-auto h-auto py-1 rounded-2xl">
+   100→          <TabsTrigger value="general" className="rounded-xl gap-2">
+   101→            <Globe className="h-4 w-4" /> Umum
+   102→          </TabsTrigger>
+   103→          <TabsTrigger value="theme" className="rounded-xl gap-2">
+   104→            <Palette className="h-4 w-4" /> Tema
+   105→          </TabsTrigger>
+   106→          <TabsTrigger value="branding" className="rounded-xl gap-2">
+   107→            <Sparkles className="h-4 w-4" /> Tema &amp; Branding
+   108→          </TabsTrigger>
+   109→          <TabsTrigger value="social" className="rounded-xl gap-2">
+   110→            <Share2 className="h-4 w-4" /> Sosial
+   111→          </TabsTrigger>
+   112→          <TabsTrigger value="contact" className="rounded-xl gap-2">
+   113→            <MapPin className="h-4 w-4" /> Kontak
+   114→          </TabsTrigger>
+   115→          <TabsTrigger value="seo" className="rounded-xl gap-2">
+   116→            <SearchIcon className="h-4 w-4" /> SEO
+   117→          </TabsTrigger>
+   118→          <TabsTrigger value="content" className="rounded-xl gap-2">
+   119→            <BookOpen className="h-4 w-4" /> Konten
+   120→          </TabsTrigger>
+   121→        </TabsList>
+   122→
+   123→        {/* General */}
+   124→        <TabsContent value="general" className="space-y-6">
+   125→          <Card className="glass rounded-3xl border-border/60">
+   126→            <CardHeader>
+   127→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   128→                <Globe className="h-5 w-5 text-primary" /> Informasi Situs
+   129→              </CardTitle>
+   130→              <CardDescription>
+   131→                Pengaturan dasar identitas situs web.
+   132→              </CardDescription>
+   133→            </CardHeader>
+   134→            <CardContent className="space-y-4">
+   135→              <div>
+   136→                <Label htmlFor="siteName">Nama Situs</Label>
+   137→                <Input
+   138→                  id="siteName"
+   139→                  {...register("siteName")}
+   140→                  className="mt-1.5"
+   141→                />
+   142→                {errors.siteName && (
+   143→                  <p className="text-xs text-destructive mt-1">
+   144→                    {errors.siteName.message}
+   145→                  </p>
+   146→                )}
+   147→              </div>
+   148→              <div>
+   149→                <Label htmlFor="siteDescription">Deskripsi Situs</Label>
+   150→                <Textarea
+   151→                  id="siteDescription"
+   152→                  {...register("siteDescription")}
+   153→                  className="mt-1.5 min-h-[80px]"
+   154→                />
+   155→              </div>
+   156→              <div>
+   157→                <Label htmlFor="siteKeywords">Kata Kunci Situs</Label>
+   158→                <Input
+   159→                  id="siteKeywords"
+   160→                  {...register("siteKeywords")}
+   161→                  placeholder="perpustakaan, islami, kitab, …"
+   162→                  className="mt-1.5"
+   163→                />
+   164→                <p className="text-[11px] text-muted-foreground mt-1">
+   165→                  Pisahkan dengan koma
+   166→                </p>
+   167→              </div>
+   168→            </CardContent>
+   169→          </Card>
+   170→
+   171→          <Card className="glass rounded-3xl border-border/60">
+   172→            <CardHeader>
+   173→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   174→                <ImageIcon className="h-5 w-5 text-primary" /> Logo & Favicon
+   175→              </CardTitle>
+   176→            </CardHeader>
+   177→            <CardContent className="space-y-4">
+   178→              <div>
+   179→                <Label htmlFor="siteLogo">Logo</Label>
+   180→                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+   181→                  <div className="h-14 w-14 rounded-2xl overflow-hidden border border-border/60 bg-secondary/40 grid place-items-center shrink-0">
+   182→                    {logo ? (
+   183→                       
+   184→                      <img src={logo} alt="Logo" className="h-full w-full object-cover" />
+   185→                    ) : (
+   186→                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+   187→                    )}
+   188→                  </div>
+   189→                  <Input
+   190→                    id="siteLogo"
+   191→                    {...register("siteLogo")}
+   192→                    placeholder="/uploads/logo.png"
+   193→                    className="flex-1 min-w-[200px]"
+   194→                  />
+   195→                  <UploadButton
+   196→                    category="image"
+   197→                    accept="image/*"
+   198→                    label="Unggah"
+   199→                    onUploaded={(url) => setValue("siteLogo", url, { shouldValidate: true })}
+   200→                  />
+   201→                </div>
+   202→              </div>
+   203→              <div>
+   204→                <Label htmlFor="siteFavicon">Favicon</Label>
+   205→                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+   206→                  <div className="h-14 w-14 rounded-2xl overflow-hidden border border-border/60 bg-secondary/40 grid place-items-center shrink-0">
+   207→                    {favicon ? (
+   208→                       
+   209→                      <img src={favicon} alt="Favicon" className="h-full w-full object-contain" />
+   210→                    ) : (
+   211→                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+   212→                    )}
+   213→                  </div>
+   214→                  <Input
+   215→                    id="siteFavicon"
+   216→                    {...register("siteFavicon")}
+   217→                    placeholder="/uploads/favicon.ico"
+   218→                    className="flex-1 min-w-[200px]"
+   219→                  />
+   220→                  <UploadButton
+   221→                    category="image"
+   222→                    accept="image/x-icon,image/png,image/svg+xml"
+   223→                    label="Unggah"
+   224→                    onUploaded={(url) => setValue("siteFavicon", url, { shouldValidate: true })}
+   225→                  />
+   226→                </div>
+   227→              </div>
+   228→            </CardContent>
+   229→          </Card>
+   230→
+   231→          <Card className="glass rounded-3xl border-border/60">
+   232→            <CardHeader>
+   233→              <CardTitle className="font-serif text-lg">Footer</CardTitle>
+   234→            </CardHeader>
+   235→            <CardContent>
+   236→              <Label htmlFor="footerText">Teks Footer</Label>
+   237→              <Textarea
+   238→                id="footerText"
+   239→                {...register("footerText")}
+   240→                className="mt-1.5"
+   241→                placeholder="© 2025 MDTA MIFTAHUL ULUM 01"
+   242→              />
+   243→            </CardContent>
+   244→          </Card>
+   245→        </TabsContent>
+   246→
+   247→        {/* Theme */}
+   248→        <TabsContent value="theme">
+   249→          <Card className="glass rounded-3xl border-border/60">
+   250→            <CardHeader>
+   251→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   252→                <Palette className="h-5 w-5 text-primary" /> Skema Warna
+   253→              </CardTitle>
+   254→              <CardDescription>
+   255→                Sesuaikan warna primer dan aksen situs.
+   256→              </CardDescription>
+   257→            </CardHeader>
+   258→            <CardContent className="space-y-6">
+   259→              <ColorField
+   260→                id="primaryColor"
+   261→                label="Warna Primer"
+   262→                value={primaryColor || ""}
+   263→                onChange={(v) => setValue("primaryColor", v, { shouldValidate: true })}
+   264→                register={register("primaryColor")}
+   265→              />
+   266→              <ColorField
+   267→                id="accentColor"
+   268→                label="Warna Aksen"
+   269→                value={accentColor || ""}
+   270→                onChange={(v) => setValue("accentColor", v, { shouldValidate: true })}
+   271→                register={register("accentColor")}
+   272→              />
+   273→              <div className="rounded-2xl border border-border/60 p-4">
+   274→                <p className="text-xs text-muted-foreground mb-3">Pratinjau</p>
+   275→                <div className="flex flex-wrap items-center gap-3">
+   276→                  <Button style={{ backgroundColor: primaryColor }} className="rounded-full">
+   277→                    Tombol Primer
+   278→                  </Button>
+   279→                  <Button
+   280→                    style={{ backgroundColor: accentColor }}
+   281→                    className="rounded-full text-black"
+   282→                  >
+   283→                    Tombol Aksen
+   284→                  </Button>
+   285→                  <div
+   286→                    className="h-10 w-10 rounded-xl ring-2 ring-border/60"
+   287→                    style={{ backgroundColor: primaryColor }}
+   288→                  />
+   289→                  <div
+   290→                    className="h-10 w-10 rounded-xl ring-2 ring-border/60"
+   291→                    style={{ backgroundColor: accentColor }}
+   292→                  />
+   293→                </div>
+   294→              </div>
+   295→            </CardContent>
+   296→          </Card>
+   297→        </TabsContent>
+   298→
+   299→        {/* Theme & Branding (V2) */}
+   300→        <TabsContent value="branding" className="space-y-6">
+   301→          <Card className="glass rounded-3xl border-border/60">
+   302→            <CardHeader>
+   303→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   304→                <Sparkles className="h-5 w-5 text-primary" /> Branding Lanjutan
+   305→              </CardTitle>
+   306→              <CardDescription>
+   307→                Kustomisasi tampilan situs lebih dalam: warna latar, gambar hero, tipografi, dan radius border.
+   308→              </CardDescription>
+   309→            </CardHeader>
+   310→            <CardContent className="space-y-6">
+   311→              <ColorField
+   312→                id="themeBgColor"
+   313→                label="Warna Latar Belakang"
+   314→                value={themeBgColor || "#fafaf9"}
+   315→                onChange={(v) => setValue("themeBgColor", v, { shouldValidate: true })}
+   316→                register={register("themeBgColor")}
+   317→              />
+   318→
+   319→              <div>
+   320→                <Label htmlFor="themeHeroImage">Gambar Hero</Label>
+   321→                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+   322→                  <div className="h-14 w-24 rounded-2xl overflow-hidden border border-border/60 bg-secondary/40 grid place-items-center shrink-0">
+   323→                    {themeHeroImage ? (
+   324→                      // eslint-disable-next-line @next/next/no-img-element
+   325→                      <img src={themeHeroImage} alt="Hero" className="h-full w-full object-cover" />
+   326→                    ) : (
+   327→                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+   328→                    )}
+   329→                  </div>
+   330→                  <Input
+   331→                    id="themeHeroImage"
+   332→                    {...register("themeHeroImage")}
+   333→                    placeholder="/uploads/hero.jpg"
+   334→                    className="flex-1 min-w-[200px]"
+   335→                  />
+   336→                  <UploadButton
+   337→                    category="image"
+   338→                    accept="image/*"
+   339→                    label="Unggah"
+   340→                    onUploaded={(url) => setValue("themeHeroImage", url, { shouldValidate: true })}
+   341→                  />
+   342→                </div>
+   343→              </div>
+   344→
+   345→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   346→                <div>
+   347→                  <Label htmlFor="themeFontHeading">Font Heading</Label>
+   348→                  <Select
+   349→                    value={themeFontHeading || "serif"}
+   350→                    onValueChange={(v) => setValue("themeFontHeading", v as "serif" | "sans" | "arabic", { shouldValidate: true })}
+   351→                  >
+   352→                    <SelectTrigger id="themeFontHeading" className="mt-1.5 w-full">
+   353→                      <SelectValue />
+   354→                    </SelectTrigger>
+   355→                    <SelectContent>
+   356→                      <SelectItem value="serif">Serif (Lora)</SelectItem>
+   357→                      <SelectItem value="sans">Sans (Plus Jakarta)</SelectItem>
+   358→                      <SelectItem value="arabic">Arab (Amiri)</SelectItem>
+   359→                    </SelectContent>
+   360→                  </Select>
+   361→                </div>
+   362→                <div>
+   363→                  <Label htmlFor="themeFontBody">Font Body</Label>
+   364→                  <Select
+   365→                    value={themeFontBody || "sans"}
+   366→                    onValueChange={(v) => setValue("themeFontBody", v as "serif" | "sans" | "arabic", { shouldValidate: true })}
+   367→                  >
+   368→                    <SelectTrigger id="themeFontBody" className="mt-1.5 w-full">
+   369→                      <SelectValue />
+   370→                    </SelectTrigger>
+   371→                    <SelectContent>
+   372→                      <SelectItem value="serif">Serif (Lora)</SelectItem>
+   373→                      <SelectItem value="sans">Sans (Plus Jakarta)</SelectItem>
+   374→                      <SelectItem value="arabic">Arab (Amiri)</SelectItem>
+   375→                    </SelectContent>
+   376→                  </Select>
+   377→                </div>
+   378→              </div>
+   379→
+   380→              <div>
+   381→                <div className="flex items-center justify-between mb-2">
+   382→                  <Label htmlFor="themeBorderRadius">Radius Border</Label>
+   383→                  <span className="text-xs font-mono text-muted-foreground">
+   384→                    {Number(themeBorderRadius ?? 16)}px
+   385→                  </span>
+   386→                </div>
+   387→                <Slider
+   388→                  value={[Number(themeBorderRadius ?? 16)]}
+   389→                  min={0}
+   390→                  max={32}
+   391→                  step={1}
+   392→                  onValueChange={(v) => setValue("themeBorderRadius", v[0], { shouldValidate: true })}
+   393→                />
+   394→              </div>
+   395→            </CardContent>
+   396→          </Card>
+   397→
+   398→          {/* Live preview */}
+   399→          <Card className="glass rounded-3xl border-border/60">
+   400→            <CardHeader>
+   401→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   402→                <Eye className="h-5 w-5 text-primary" /> Pratinjau Langsung
+   403→              </CardTitle>
+   404→              <CardDescription>Contoh tampilan dengan pengaturan tema saat ini.</CardDescription>
+   405→            </CardHeader>
+   406→            <CardContent>
+   407→              <div
+   408→                className="rounded-3xl border border-border/60 p-6 space-y-4"
+   409→                style={{
+   410→                  backgroundColor: themeBgColor || "#fafaf9",
+   411→                  backgroundImage: themeHeroImage
+   412→                    ? `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url(${themeHeroImage})`
+   413→                    : undefined,
+   414→                  backgroundSize: "cover",
+   415→                  backgroundPosition: "center",
+   416→                }}
+   417→              >
+   418→                <h3
+   419→                  className="font-bold text-2xl text-white"
+   420→                  style={{
+   421→                    fontFamily:
+   422→                      themeFontHeading === "serif"
+   423→                        ? "var(--font-serif), serif"
+   424→                        : themeFontHeading === "arabic"
+   425→                        ? "var(--font-arabic), serif"
+   426→                        : "var(--font-sans), sans-serif",
+   427→                  }}
+   428→                >
+   429→                  Perpustakaan Digital MDTA MIFTAHUL ULUM
+   430→                </h3>
+   431→                <p
+   432→                  className="text-sm text-white/90"
+   433→                  style={{
+   434→                    fontFamily:
+   435→                      themeFontBody === "serif"
+   436→                        ? "var(--font-serif), serif"
+   437→                        : themeFontBody === "arabic"
+   438→                        ? "var(--font-arabic), serif"
+   439→                        : "var(--font-sans), sans-serif",
+   440→                  }}
+   441→                >
+   442→                  Jelajahi ribuan kitab kuning, buku modern, dan kajian Islam.
+   443→                </p>
+   444→                <div className="flex flex-wrap gap-2">
+   445→                  <button
+   446→                    type="button"
+   447→                    style={{
+   448→                      backgroundColor: primaryColor || "#059669",
+   449→                      borderRadius: `${Number(themeBorderRadius ?? 16)}px`,
+   450→                    }}
+   451→                    className="px-4 py-2 text-sm font-medium text-white"
+   452→                  >
+   453→                    Mulai Membaca
+   454→                  </button>
+   455→                  <button
+   456→                    type="button"
+   457→                    style={{
+   458→                      backgroundColor: accentColor || "#d4af37",
+   459→                      borderRadius: `${Number(themeBorderRadius ?? 16)}px`,
+   460→                    }}
+   461→                    className="px-4 py-2 text-sm font-medium text-black"
+   462→                  >
+   463→                    Jelajahi Koleksi
+   464→                  </button>
+   465→                </div>
+   466→              </div>
+   467→            </CardContent>
+   468→          </Card>
+   469→
+   470→          {/* Site Logo, Favicon, Footer (existing - moved here for convenience) */}
+   471→          <Card className="glass rounded-3xl border-border/60">
+   472→            <CardHeader>
+   473→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   474→                <ImageIcon className="h-5 w-5 text-primary" /> Logo, Favicon &amp; Footer
+   475→              </CardTitle>
+   476→              <CardDescription>
+   477→                Logo dan favicon juga dapat diatur di tab Umum. Footer ditampilkan di seluruh halaman.
+   478→              </CardDescription>
+   479→            </CardHeader>
+   480→            <CardContent className="space-y-4">
+   481→              <div>
+   482→                <Label htmlFor="siteLogo-branding">Logo</Label>
+   483→                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+   484→                  <div className="h-14 w-14 rounded-2xl overflow-hidden border border-border/60 bg-secondary/40 grid place-items-center shrink-0">
+   485→                    {logo ? (
+   486→                      // eslint-disable-next-line @next/next/no-img-element
+   487→                      <img src={logo} alt="Logo" className="h-full w-full object-cover" />
+   488→                    ) : (
+   489→                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+   490→                    )}
+   491→                  </div>
+   492→                  <Input
+   493→                    id="siteLogo-branding"
+   494→                    {...register("siteLogo")}
+   495→                    placeholder="/uploads/logo.png"
+   496→                    className="flex-1 min-w-[200px]"
+   497→                  />
+   498→                  <UploadButton
+   499→                    category="image"
+   500→                    accept="image/*"
+   501→                    label="Unggah"
+   502→                    onUploaded={(url) => setValue("siteLogo", url, { shouldValidate: true })}
+   503→                  />
+   504→                </div>
+   505→              </div>
+   506→              <div>
+   507→                <Label htmlFor="siteFavicon-branding">Favicon</Label>
+   508→                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+   509→                  <div className="h-14 w-14 rounded-2xl overflow-hidden border border-border/60 bg-secondary/40 grid place-items-center shrink-0">
+   510→                    {favicon ? (
+   511→                      // eslint-disable-next-line @next/next/no-img-element
+   512→                      <img src={favicon} alt="Favicon" className="h-full w-full object-contain" />
+   513→                    ) : (
+   514→                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+   515→                    )}
+   516→                  </div>
+   517→                  <Input
+   518→                    id="siteFavicon-branding"
+   519→                    {...register("siteFavicon")}
+   520→                    placeholder="/uploads/favicon.ico"
+   521→                    className="flex-1 min-w-[200px]"
+   522→                  />
+   523→                  <UploadButton
+   524→                    category="image"
+   525→                    accept="image/x-icon,image/png,image/svg+xml"
+   526→                    label="Unggah"
+   527→                    onUploaded={(url) => setValue("siteFavicon", url, { shouldValidate: true })}
+   528→                  />
+   529→                </div>
+   530→              </div>
+   531→              <div>
+   532→                <Label htmlFor="footerText-branding">Teks Footer</Label>
+   533→                <Textarea
+   534→                  id="footerText-branding"
+   535→                  {...register("footerText")}
+   536→                  className="mt-1.5"
+   537→                  placeholder="© 2025 MDTA MIFTAHUL ULUM 01"
+   538→                />
+   539→              </div>
+   540→            </CardContent>
+   541→          </Card>
+   542→        </TabsContent>
+   543→
+   544→        {/* Social */}
+   545→        <TabsContent value="social">
+   546→          <Card className="glass rounded-3xl border-border/60">
+   547→            <CardHeader>
+   548→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   549→                <Share2 className="h-5 w-5 text-primary" /> Media Sosial
+   550→              </CardTitle>
+   551→              <CardDescription>
+   552→                Tautan ke akun media sosial pesantren.
+   553→              </CardDescription>
+   554→            </CardHeader>
+   555→            <CardContent className="space-y-4">
+   556→              <div>
+   557→                <Label htmlFor="socialFacebook">Facebook</Label>
+   558→                <Input
+   559→                  id="socialFacebook"
+   560→                  {...register("socialFacebook")}
+   561→                  placeholder="https://facebook.com/…"
+   562→                  className="mt-1.5"
+   563→                />
+   564→                {errors.socialFacebook && (
+   565→                  <p className="text-xs text-destructive mt-1">
+   566→                    {errors.socialFacebook.message}
+   567→                  </p>
+   568→                )}
+   569→              </div>
+   570→              <div>
+   571→                <Label htmlFor="socialInstagram">Instagram</Label>
+   572→                <Input
+   573→                  id="socialInstagram"
+   574→                  {...register("socialInstagram")}
+   575→                  placeholder="https://instagram.com/…"
+   576→                  className="mt-1.5"
+   577→                />
+   578→                {errors.socialInstagram && (
+   579→                  <p className="text-xs text-destructive mt-1">
+   580→                    {errors.socialInstagram.message}
+   581→                  </p>
+   582→                )}
+   583→              </div>
+   584→              <div>
+   585→                <Label htmlFor="socialYoutube">YouTube</Label>
+   586→                <Input
+   587→                  id="socialYoutube"
+   588→                  {...register("socialYoutube")}
+   589→                  placeholder="https://youtube.com/…"
+   590→                  className="mt-1.5"
+   591→                />
+   592→                {errors.socialYoutube && (
+   593→                  <p className="text-xs text-destructive mt-1">
+   594→                    {errors.socialYoutube.message}
+   595→                  </p>
+   596→                )}
+   597→              </div>
+   598→              <div>
+   599→                <Label htmlFor="socialTelegram">Telegram</Label>
+   600→                <Input
+   601→                  id="socialTelegram"
+   602→                  {...register("socialTelegram")}
+   603→                  placeholder="https://t.me/…"
+   604→                  className="mt-1.5"
+   605→                />
+   606→                {errors.socialTelegram && (
+   607→                  <p className="text-xs text-destructive mt-1">
+   608→                    {errors.socialTelegram.message}
+   609→                  </p>
+   610→                )}
+   611→              </div>
+   612→            </CardContent>
+   613→          </Card>
+   614→        </TabsContent>
+   615→
+   616→        {/* Contact */}
+   617→        <TabsContent value="contact">
+   618→          <Card className="glass rounded-3xl border-border/60">
+   619→            <CardHeader>
+   620→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   621→                <MapPin className="h-5 w-5 text-primary" /> Kontak
+   622→              </CardTitle>
+   623→              <CardDescription>
+   624→                Informasi kontak pesantren.
+   625→              </CardDescription>
+   626→            </CardHeader>
+   627→            <CardContent className="space-y-4">
+   628→              <div>
+   629→                <Label htmlFor="contactAddress">Alamat</Label>
+   630→                <Textarea
+   631→                  id="contactAddress"
+   632→                  {...register("contactAddress")}
+   633→                  className="mt-1.5"
+   634→                  placeholder="Jl. Pesantren No. 01, …"
+   635→                />
+   636→              </div>
+   637→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   638→                <div>
+   639→                  <Label htmlFor="contactWhatsapp">WhatsApp</Label>
+   640→                  <Input
+   641→                    id="contactWhatsapp"
+   642→                    {...register("contactWhatsapp")}
+   643→                    placeholder="08xxxxxxxxxx"
+   644→                    className="mt-1.5"
+   645→                  />
+   646→                </div>
+   647→                <div>
+   648→                  <Label htmlFor="contactEmail">Email</Label>
+   649→                  <Input
+   650→                    id="contactEmail"
+   651→                    type="email"
+   652→                    {...register("contactEmail")}
+   653→                    placeholder="info@mdta-miftahululum.sch.id"
+   654→                    className="mt-1.5"
+   655→                  />
+   656→                  {errors.contactEmail && (
+   657→                    <p className="text-xs text-destructive mt-1">
+   658→                      {errors.contactEmail.message}
+   659→                    </p>
+   660→                  )}
+   661→                </div>
+   662→              </div>
+   663→              <div>
+   664→                <Label htmlFor="contactMapsUrl">URL Google Maps</Label>
+   665→                <Input
+   666→                  id="contactMapsUrl"
+   667→                  {...register("contactMapsUrl")}
+   668→                  placeholder="https://maps.google.com/…"
+   669→                  className="mt-1.5"
+   670→                />
+   671→                {errors.contactMapsUrl && (
+   672→                  <p className="text-xs text-destructive mt-1">
+   673→                    {errors.contactMapsUrl.message}
+   674→                  </p>
+   675→                )}
+   676→              </div>
+   677→            </CardContent>
+   678→          </Card>
+   679→        </TabsContent>
+   680→
+   681→        {/* SEO */}
+   682→        <TabsContent value="seo">
+   683→          <Card className="glass rounded-3xl border-border/60">
+   684→            <CardHeader>
+   685→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   686→                <SearchIcon className="h-5 w-5 text-primary" /> SEO & Analytics
+   687→              </CardTitle>
+   688→              <CardDescription>
+   689→                Konfigurasi analitik dan pelacakan.
+   690→              </CardDescription>
+   691→            </CardHeader>
+   692→            <CardContent className="space-y-4">
+   693→              <div>
+   694→                <Label htmlFor="googleAnalytics">Google Analytics ID</Label>
+   695→                <Input
+   696→                  id="googleAnalytics"
+   697→                  {...register("googleAnalytics")}
+   698→                  placeholder="G-XXXXXXXXXX"
+   699→                  className="mt-1.5 font-mono text-sm"
+   700→                />
+   701→                {errors.googleAnalytics && (
+   702→                  <p className="text-xs text-destructive mt-1">
+   703→                    {errors.googleAnalytics.message}
+   704→                  </p>
+   705→                )}
+   706→              </div>
+   707→            </CardContent>
+   708→          </Card>
+   709→        </TabsContent>
+   710→
+   711→        {/* Content */}
+   712→        <TabsContent value="content">
+   713→          <Card className="glass rounded-3xl border-border/60">
+   714→            <CardHeader>
+   715→              <CardTitle className="font-serif text-lg flex items-center gap-2">
+   716→                <BookOpen className="h-5 w-5 text-primary" /> Kutipan Islami
+   717→              </CardTitle>
+   718→              <CardDescription>
+   719→                Kutipan yang ditampilkan di beranda atau sidebar.
+   720→              </CardDescription>
+   721→            </CardHeader>
+   722→            <CardContent className="space-y-4">
+   723→              <div>
+   724→                <Label htmlFor="islamicQuote">Kutipan</Label>
+   725→                <Textarea
+   726→                  id="islamicQuote"
+   727→                  {...register("islamicQuote")}
+   728→                  className="mt-1.5 min-h-[100px]"
+   729→                  placeholder="Membaca adalah kunci pembuka pintu kebijaksanaan."
+   730→                />
+   731→              </div>
+   732→              <div>
+   733→                <Label htmlFor="quoteAuthor">Pengarang Kutipan</Label>
+   734→                <Input
+   735→                  id="quoteAuthor"
+   736→                  {...register("quoteAuthor")}
+   737→                  className="mt-1.5"
+   738→                  placeholder="Imam Al-Ghazali"
+   739→                />
+   740→              </div>
+   741→            </CardContent>
+   742→          </Card>
+   743→        </TabsContent>
+   744→      </Tabs>
+   745→
+   746→      {/* Sticky save bar */}
+   747→      <div className="sticky bottom-4 z-10 flex justify-end">
+   748→        <div className="glass-strong rounded-full shadow-lg border border-border/60 p-1.5 pr-2 flex items-center gap-2">
+   749→          <Button
+   750→            type="submit"
+   751→            disabled={isSubmitting}
+   752→            className="rounded-full"
+   753→          >
+   754→            {isSubmitting ? (
+   755→              <>
+   756→                <Loader2 className="h-4 w-4 animate-spin" /> Menyimpan…
+   757→              </>
+   758→            ) : (
+   759→              <>
+   760→                <Save className="h-4 w-4" /> Simpan Pengaturan
+   761→              </>
+   762→            )}
+   763→          </Button>
+   764→        </div>
+   765→      </div>
+   766→    </form>
+   767→  );
+   768→}
+   769→
+   770→interface ColorFieldProps {
+   771→  id: string;
+   772→  label: string;
+   773→  value: string;
+   774→  onChange: (v: string) => void;
+   775→  register: ReturnType<ReturnType<typeof useForm<FormValues>>["register"]>;
+   776→}
+   777→
+   778→function ColorField({ id, label, value, onChange, register }: ColorFieldProps) {
+   779→  return (
+   780→    <div>
+   781→      <Label htmlFor={id}>{label}</Label>
+   782→      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+   783→        <div
+   784→          className="h-10 w-10 rounded-xl ring-2 ring-border/60 shrink-0"
+   785→          style={{ backgroundColor: value || "#059669" }}
+   786→        />
+   787→        <Input
+   788→          type="color"
+   789→          value={value || "#059669"}
+   790→          onChange={(e) => onChange(e.target.value)}
+   791→          className="h-10 w-14 p-1 cursor-pointer"
+   792→          aria-label={`${label} picker`}
+   793→        />
+   794→        <Input
+   795→          id={id}
+   796→          {...register}
+   797→          placeholder="#059669"
+   798→          className="max-w-[180px] font-mono text-sm"
+   799→        />
+   800→        <div className="flex items-center gap-1.5 ml-1">
+   801→          {COLOR_PRESETS.map((c) => (
+   802→            <button
+   803→              type="button"
+   804→              key={c}
+   805→              onClick={() => onChange(c)}
+   806→              className="h-7 w-7 rounded-lg ring-1 ring-border/60 hover:scale-110 transition-transform"
+   807→              style={{ backgroundColor: c }}
+   808→              aria-label={`Pilih warna ${c}`}
+   809→            />
+   810→          ))}
+   811→        </div>
+   812→      </div>
+   813→    </div>
+   814→  );
+   815→}
+   816→

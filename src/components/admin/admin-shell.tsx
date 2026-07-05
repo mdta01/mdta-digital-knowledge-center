@@ -18,6 +18,12 @@ import {
   X,
   Loader2,
   ExternalLink,
+  Bell,
+  BarChart3,
+  Image as ImageIcon,
+  DatabaseBackup,
+  Database,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,8 +55,14 @@ const NAV: AdminNavItem[] = [
   { href: "/admin/categories", label: "Master Kategori", icon: LayoutGrid },
   { href: "/admin/pages", label: "Master Halaman", icon: FileText },
   { href: "/admin/messages", label: "Pesan Masuk", icon: Mail },
+  { href: "/admin/notifications", label: "Notifikasi", icon: Bell },
   { href: "/admin/users", label: "Manajemen Admin", icon: UserCog, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { href: "/admin/media", label: "Media Manager", icon: ImageIcon, roles: ["SUPER_ADMIN", "ADMIN", "EDITOR"] },
   { href: "/admin/activity-logs", label: "Activity Log", icon: ScrollText, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { href: "/admin/backup", label: "Backup & Restore", icon: DatabaseBackup, roles: ["SUPER_ADMIN"] },
+  { href: "/admin/cache", label: "Cache & Optimasi", icon: Database, roles: ["SUPER_ADMIN"] },
+  { href: "/admin/maintenance", label: "Maintenance", icon: Wrench, roles: ["SUPER_ADMIN"] },
   { href: "/admin/settings", label: "Pengaturan", icon: Settings, roles: ["SUPER_ADMIN"] },
 ];
 

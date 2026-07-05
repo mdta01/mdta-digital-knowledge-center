@@ -5,7 +5,7 @@ import {
   settingService,
   dashboardService,
 } from "@/lib/services";
-import { HomeContent } from "./home-content";
+import { HomeV2 } from "./home-v2";
 
 export const revalidate = 60;
 
@@ -22,7 +22,7 @@ export default async function HomePage() {
     ]);
 
   return (
-    <HomeContent
+    <HomeV2
       latest={latest}
       popular={popular}
       featured={featured}

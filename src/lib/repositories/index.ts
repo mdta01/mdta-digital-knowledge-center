@@ -42,3 +42,19 @@ export type { CreateContactMessageInput } from "./contact-message.repository";
 
 export { tagRepository } from "./tag.repository";
 export type { CreateTagInput } from "./tag.repository";
+
+// V2 repositories
+export { notificationRepository } from "./notification.repository";
+export type { CreateNotificationInput } from "./notification.repository";
+
+export { bookmarkRepository } from "./bookmark.repository";
+export type { CreateBookmarkInput } from "./bookmark.repository";
+
+export { readingProgressRepository } from "./reading-progress.repository";
+export type { UpsertProgressInput } from "./reading-progress.repository";
+
+export { analyticsEventRepository } from "./analytics-event.repository";
+export type { CreateAnalyticsEventInput } from "./analytics-event.repository";
+
+export { bookRevisionRepository } from "./book-revision.repository";
+export type { CreateRevisionInput } from "./book-revision.repository";
