@@ -247,12 +247,12 @@ export const settingService = {
   async getAll() {
     const json = await settingRepository.getAllJSON();
     return {
-      siteName: json[SETTING_KEYS.SITE_NAME] ?? "Perpustakaan Digital MDTA MIFTAHUL ULUM 01",
+      siteName: json[SETTING_KEYS.SITE_NAME] ?? "MDTA Digital Knowledge Center",
       siteDescription: json[SETTING_KEYS.SITE_DESCRIPTION] ?? "",
       siteKeywords: json[SETTING_KEYS.SITE_KEYWORDS] ?? "",
       siteLogo: json[SETTING_KEYS.SITE_LOGO] ?? "",
       siteFavicon: json[SETTING_KEYS.SITE_FAVICON] ?? "",
-      footerText: json[SETTING_KEYS.FOOTER_TEXT] ?? "© MDTA MIFTAHUL ULUM 01",
+      footerText: json[SETTING_KEYS.FOOTER_TEXT] ?? "© MDTA MIFTAHUL ULUM 01 — Membangun Peradaban Melalui Ilmu dan Teknologi",
       primaryColor: json[SETTING_KEYS.PRIMARY_COLOR] ?? "#059669",
       accentColor: json[SETTING_KEYS.ACCENT_COLOR] ?? "#d4af37",
       socialFacebook: json[SETTING_KEYS.SOCIAL_FACEBOOK] ?? "",

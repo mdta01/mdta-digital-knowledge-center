@@ -185,10 +185,10 @@ export function HomeV2({
   );
 
   const stats = [
-    { label: "Koleksi", value: overview.books.published || overview.books.total, icon: Library, suffix: "+" },
-    { label: "Penulis", value: overview.authors, icon: Users, suffix: "" },
-    { label: "Kategori", value: overview.categories, icon: LayoutGrid, suffix: "" },
-    { label: "Dibaca", value: overview.books.totalViews, icon: Eye, suffix: "" },
+    { label: "Knowledge Assets", value: overview.books.published || overview.books.total, icon: Library, suffix: "+" },
+    { label: "Penulis & Kontributor", value: overview.authors, icon: Users, suffix: "+" },
+    { label: "Kategori Ilmu", value: overview.categories, icon: LayoutGrid, suffix: "" },
+    { label: "Total Pembaca", value: overview.books.totalViews, icon: Eye, suffix: "+" },
   ];
 
   return (
@@ -304,7 +304,7 @@ export function HomeV2({
           >
             <Badge className="mb-5 bg-gold/15 text-gold border-gold/30 backdrop-blur-sm rounded-full px-4 py-1.5">
               <Sparkles className="h-3.5 w-3.5 mr-2" />
-              Islamic Knowledge Center — Modern & Premium
+              MDTA Digital Knowledge Center — Modern Islamic Learning Platform
             </Badge>
           </motion.div>
 
@@ -315,13 +315,13 @@ export function HomeV2({
             transition={{ duration: 0.8, delay: 0.3 }}
             className="font-serif text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.05] tracking-tight max-w-5xl mx-auto"
           >
-            Pusat Pengetahuan{" "}
+            MDTA Digital{" "}
             <span className="bg-gradient-to-r from-gold via-amber-200 to-gold bg-clip-text text-transparent">
-              Islam Modern
+              Knowledge Center
             </span>
             <br />
-            <span className="text-3xl sm:text-4xl lg:text-5xl text-white/90">
-              MDTA MIFTAHUL ULUM 01
+            <span className="text-2xl sm:text-3xl lg:text-4xl text-white/80 mt-2 block">
+              Membangun Peradaban Melalui Ilmu dan Teknologi
             </span>
           </motion.h1>
 
@@ -332,8 +332,7 @@ export function HomeV2({
             transition={{ duration: 0.8, delay: 0.45 }}
             className="mt-6 text-base sm:text-lg lg:text-xl text-white/80 max-w-3xl mx-auto leading-relaxed"
           >
-            Akses ribuan kitab klasik, buku, artikel, audio, video, dan materi
-            diniyah berkualitas — gratis, tanpa login, kapan saja, di mana saja.
+            Akses ribuan kitab klasik, buku, artikel, materi diniyah, audio kajian, dan video pembelajaran Islam berkualitas — gratis, tanpa login, kapan saja, di mana saja.
           </motion.p>
 
           {/* Search bar dominant */}

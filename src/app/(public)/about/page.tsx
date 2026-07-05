@@ -105,7 +105,7 @@ export default async function AboutPage() {
               </li>
               <li className="flex gap-2">
                 <span className="text-gold">•</span>
-                <span>Membangun ekosistem digital perpustakaan Islami yang mudah diakses.</span>
+                <span>Membangun ekosistem digital pengetahuan Islam yang mudah diakses.</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-gold">•</span>
@@ -130,7 +130,7 @@ export default async function AboutPage() {
           </p>
           <p>
             Sebagai bagian dari komitmen untuk memperluas akses ilmu, kami
-            membangun perpustakaan digital ini agar seluruh khazanah literatur
+            membangun Digital Knowledge Center ini agar seluruh khazanah literatur
             Islam — mulai dari kitab klasik, modul pembelajaran, hingga buku
             diniyah — dapat dinikmati oleh siapa saja, kapan saja, tanpa
             hambatan. Semua koleksi dapat diakses gratis dan didukung dengan

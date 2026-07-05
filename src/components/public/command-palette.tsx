@@ -46,14 +46,15 @@ interface QuickSearchResult {
 
 const QUICK_LINKS = [
   { label: "Beranda", href: "/", icon: HomeIcon },
-  { label: "Koleksi Buku", href: "/books", icon: BookOpen },
+  { label: "Knowledge Hub", href: "/knowledge", icon: BookOpen },
+  { label: "Pusat Pengetahuan", href: "/books", icon: BookOpen },
   { label: "Kitab Klasik", href: "/kitab", icon: BookOpen },
   { label: "Artikel", href: "/artikel", icon: FileText },
   { label: "Audio", href: "/audio", icon: TrendingUp },
   { label: "Video", href: "/video", icon: TrendingUp },
   { label: "Materi Diniyah", href: "/materi", icon: Info },
   { label: "Kategori", href: "/categories", icon: LayoutGrid },
-  { label: "Penulis", href: "/authors", icon: Users },
+  { label: "Penulis & Kontributor", href: "/authors", icon: Users },
   { label: "Tentang", href: "/about", icon: Info },
   { label: "Kontak", href: "/contact", icon: Phone },
   { label: "Bookmark Saya", href: "/bookmarks", icon: Bookmark },

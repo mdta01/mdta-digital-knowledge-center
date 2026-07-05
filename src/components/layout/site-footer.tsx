@@ -32,7 +32,7 @@ export async function SiteFooter() {
                   MDTA MIFTAHUL ULUM 01
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Perpustakaan Digital Islami
+                  Digital Knowledge Center
                 </p>
               </div>
             </div>
@@ -95,8 +95,13 @@ export async function SiteFooter() {
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
+                <Link href="/knowledge" className="text-muted-foreground hover:text-primary transition-colors">
+                  Knowledge Hub
+                </Link>
+              </li>
+              <li>
                 <Link href="/books" className="text-muted-foreground hover:text-primary transition-colors">
-                  Koleksi Buku
+                  Pusat Pengetahuan
                 </Link>
               </li>
               <li>

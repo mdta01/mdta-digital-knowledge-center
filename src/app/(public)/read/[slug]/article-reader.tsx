@@ -112,7 +112,7 @@ export function ArticleReader({ book, mode }: ArticleReaderProps) {
   }, [book.id]);
 
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-  const shareText = `${book.title} — ${book.author?.name || "Islamic Knowledge Center"}`;
+  const shareText = `${book.title} — ${book.author?.name || "MDTA Digital Knowledge Center"}`;
 
   const onShare = async (platform: "wa" | "fb" | "tw" | "copy") => {
     const u = encodeURIComponent(shareUrl);
@@ -392,7 +392,7 @@ export function ArticleReader({ book, mode }: ArticleReaderProps) {
           </Button>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Eye className="h-3.5 w-3.5" />
-            <span>Dibaca di Islamic Knowledge Center</span>
+            <span>Dibaca di MDTA Digital Knowledge Center</span>
           </div>
         </div>
       </div>

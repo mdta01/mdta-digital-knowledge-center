@@ -8,6 +8,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     process.env.NEXT_PUBLIC_SITE_URL || "https://mdta-miftahululum.sch.id";
   const staticRoutes = [
     "/",
+    "/knowledge",
     "/books",
     "/kitab",
     "/artikel",

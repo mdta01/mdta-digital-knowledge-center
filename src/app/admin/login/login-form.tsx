@@ -77,11 +77,11 @@ export function LoginForm() {
         <div className="relative text-white">
           <ShieldCheck className="h-12 w-12 text-gold mb-4" />
           <h2 className="font-serif text-3xl font-bold leading-tight mb-3">
-            Selamat Datang,<br />Admin Perpustakaan
+            Selamat Datang,<br />Admin Knowledge Center
           </h2>
           <p className="text-white/80 max-w-md leading-relaxed">
-            Kelola koleksi buku, penulis, kategori, dan seluruh aspek
-            perpustakaan digital Islami dari satu dashboard modern.
+            Kelola knowledge assets, penulis, kategori, dan seluruh aspek
+            Digital Knowledge Center dari satu dashboard modern.
           </p>
         </div>
 

@@ -49,9 +49,9 @@ interface AdminNavItem {
 }
 
 const NAV: AdminNavItem[] = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/books", label: "Master Buku", icon: BookOpen },
-  { href: "/admin/authors", label: "Master Penulis", icon: Users },
+  { href: "/admin", label: "Knowledge Dashboard", icon: LayoutDashboard },
+  { href: "/admin/books", label: "Knowledge Management", icon: BookOpen },
+  { href: "/admin/authors", label: "Penulis & Kontributor", icon: Users },
   { href: "/admin/categories", label: "Master Kategori", icon: LayoutGrid },
   { href: "/admin/pages", label: "Master Halaman", icon: FileText },
   { href: "/admin/messages", label: "Pesan Masuk", icon: Mail },

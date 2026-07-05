@@ -29,46 +29,53 @@ const amiri = Amiri({
   weight: ["400", "700"],
 });
 
-const SITE_NAME = "Islamic Knowledge Center — MDTA MIFTAHUL ULUM 01";
+const SITE_NAME = "MDTA Digital Knowledge Center";
+const SITE_TAGLINE = "Membangun Peradaban Melalui Ilmu dan Teknologi";
 const SITE_DESCRIPTION =
-  "Islamic Knowledge Center MDTA MIFTAHUL ULUM 01 — Pusat pengetahuan Islam modern: kitab klasik, buku, artikel, audio, video, dan materi diniyah. Gratis, tanpa login, dapat diinstal sebagai PWA.";
+  "MDTA Digital Knowledge Center — Pusat Pengetahuan Islam Digital Modern yang menyediakan kitab, buku, artikel, materi pembelajaran, audio, video, dan referensi keislaman dalam satu platform. Membangun Peradaban Melalui Ilmu dan Teknologi.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
   ),
   title: {
-    default: `${SITE_NAME} — Pusat Pengetahuan Islam Modern`,
+    default: `${SITE_NAME} — ${SITE_TAGLINE}`,
     template: `%s — ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   keywords: [
-    "islamic knowledge center",
-    "perpustakaan digital islami",
+    "mdta digital knowledge center",
+    "pusat pengetahuan islam",
+    "knowledge center",
+    "digital learning islam",
     "MDTA MIFTAHUL ULUM",
     "kitab kuning",
+    "kitab digital",
     "diniyah",
     "buku islami",
     "kitab klasik",
     "artikel islam",
     "kajian audio",
     "video dakwah",
+    "materi pembelajaran",
     "fiqih",
     "aqidah",
     "tafsir",
     "hadits",
     "tajwid",
     "sirah nabawiyah",
+    "edutech islam",
+    "platform pembelajaran islam",
   ],
   authors: [{ name: "MDTA MIFTAHUL ULUM 01" }],
   creator: "MDTA MIFTAHUL ULUM 01",
   publisher: "MDTA MIFTAHUL ULUM 01",
   manifest: "/manifest.webmanifest",
-  applicationName: "Islamic Knowledge Center",
+  applicationName: "MDTA Digital Knowledge Center",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Islamic Knowledge Center",
+    title: "MDTA Knowledge Center",
   },
   formatDetection: { telephone: false },
   icons: {
@@ -86,7 +93,7 @@ export const metadata: Metadata = {
     locale: "id_ID",
     url: "/",
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Perpustakaan Digital Islami`,
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
     images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: SITE_NAME }],
   },

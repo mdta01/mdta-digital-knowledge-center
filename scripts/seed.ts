@@ -198,7 +198,7 @@ async function main() {
     {
       title: "Kebijakan Privasi",
       slug: "privacy",
-      content: `<h2>Kebijakan Privasi</h2><p>Perpustakaan Digital MDTA MIFTAHUL ULUM 01 menghormari privasi pengunjung. Kami tidak mengumpulkan data pribadi tanpa persetujuan.</p><p>Data kontak yang Anda kirimkan melalui form kontak hanya digunakan untuk merespons pertanyaan Anda.</p>`,
+      content: `<h2>Kebijakan Privasi</h2><p>MDTA Digital Knowledge Center menghormati privasi pengunjung. Kami tidak mengumpulkan data pribadi tanpa persetujuan.</p><p>Data kontak yang Anda kirimkan melalui form kontak hanya digunakan untuk merespons pertanyaan Anda.</p>`,
       status: "PUBLISHED",
     },
     {
@@ -219,8 +219,8 @@ async function main() {
 
   // ---------- Settings ----------
   const settings = [
-    { key: "site.name", value: JSON.stringify("Perpustakaan Digital MDTA MIFTAHUL ULUM 01") },
-    { key: "site.description", value: JSON.stringify("Perpustakaan Digital Islami Modern — Koleksi kitab, modul pembelajaran, dan buku diniyah.") },
+    { key: "site.name", value: JSON.stringify("MDTA Digital Knowledge Center") },
+    { key: "site.description", value: JSON.stringify("MDTA Digital Knowledge Center — Pusat Pengetahuan Islam Digital Modern. Membangun Peradaban Melalui Ilmu dan Teknologi.") },
     { key: "site.footer", value: JSON.stringify("© {year} MDTA MIFTAHUL ULUM 01. Hak cipta dilindungi.") },
     { key: "contact.address", value: JSON.stringify("Jl. Pendidikan No. 01, Desa Miftahul Ulum, Kec.camatan, Kabupaten, Jawa Tengah, Indonesia 52181") },
     { key: "contact.whatsapp", value: JSON.stringify("+62 812-3456-7890") },

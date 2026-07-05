@@ -146,7 +146,7 @@ export function DashboardClient({
 
   const stats = [
     {
-      label: "Total Buku",
+      label: "Knowledge Assets",
       value: overview.books.total,
       sub: `${overview.books.published} publikasi · ${overview.books.draft} draft`,
       icon: BookOpen,
@@ -154,7 +154,7 @@ export function DashboardClient({
       iconColor: "text-emerald-600",
     },
     {
-      label: "Total Penulis",
+      label: "Penulis & Kontributor",
       value: overview.authors,
       sub: "Penulis terdaftar",
       icon: Users,
@@ -162,7 +162,7 @@ export function DashboardClient({
       iconColor: "text-amber-600",
     },
     {
-      label: "Total Kategori",
+      label: "Kategori Ilmu",
       value: overview.categories,
       sub: "Kategori aktif",
       icon: LayoutGrid,
@@ -235,7 +235,7 @@ export function DashboardClient({
             {greeting}, {userName.split(" ")[0]} 👋
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Berikut ringkasan aktivitas perpustakaan digital Anda hari ini
+            Berikut ringkasan aktivitas Knowledge Center Anda hari ini
             {now && (
               <span className="ml-2 inline-flex items-center gap-1">
                 <Clock className="h-3 w-3" /> {hourStr} WIB

@@ -501,3 +501,61 @@ Stage Summary:
 - Editor V2: footnotes, chapter/verse/hadith numbering, auto-save, revision history
 - SEO: sitemap, robots, RSS, JSON-LD
 - All existing features preserved (backward compatible)
+
+---
+Task ID: REBRAND
+Agent: Main (orchestrator)
+Task: Rebranding total — "Perpustakaan Digital" / "Islamic Knowledge Center" → "MDTA Digital Knowledge Center"
+
+Work Log:
+- Searched & replaced all "Perpustakaan" and "Islamic Knowledge Center" references across 16 source files
+- Updated root layout metadata: SITE_NAME="MDTA Digital Knowledge Center", SITE_TAGLINE="Membangun Peradaban Melalui Ilmu dan Teknologi", keywords expanded with edutech/platform terms
+- Updated PWA manifest: name, short_name, description with new brand + tagline
+- Updated site-header: brand subtitle "Digital Knowledge Center", nav includes "Knowledge Hub" at position 2, reordered nav (Beranda, Knowledge Hub, Kitab, Buku, Artikel, Audio, Video, Materi, Penulis, Kategori, Tentang, Kontak)
+- Updated site-footer: subtitle "Digital Knowledge Center", "Jelajahi" section now has Knowledge Hub + Pusat Pengetahuan links
+- Updated home-v2 hero: badge "MDTA Digital Knowledge Center — Modern Islamic Learning Platform", title "MDTA Digital Knowledge Center" with tagline subtitle, stats labels (Knowledge Assets, Penulis & Kontributor, Kategori Ilmu, Total Pembaca)
+- Updated home-content (V1 fallback): badge + title rebranded
+- Updated books page: eyebrow "Digital Knowledge Center", h1 "Pusat Pengetahuan", description rebranded
+- Updated authors page: description mentions "kontributor"
+- Updated read/[slug] page + article-reader: share text + "Dibaca di MDTA Digital Knowledge Center"
+- Updated feed.xml: title "MDTA Digital Knowledge Center", description with tagline, generator rebranded
+- Updated admin login: "Admin Knowledge Center", description mentions "knowledge assets" + "Digital Knowledge Center"
+- Updated admin settings: theme preview brand name
+- Updated admin shell sidebar: "Dashboard" → "Knowledge Dashboard", "Master Buku" → "Knowledge Management", "Master Penulis" → "Penulis & Kontributor"
+- Updated admin page metadata: title "Knowledge Center Dashboard"
+- Updated dashboard-client: stat labels (Knowledge Assets, Penulis & Kontributor, Kategori Ilmu), greeting copy "aktivitas Knowledge Center Anda"
+- Updated services: default siteName + footerText with tagline
+- Updated setting repository: APP_CONCEPT comment
+- Updated seed.ts: site.name, site.description, privacy page content
+- Ran DB update script to rebrand existing settings in database
+- Built NEW Knowledge Hub page at /knowledge:
+  * Server component fetches categories + book stats
+  * Client component with 8 collection filter tabs (Semua/Kitab/Buku/Artikel/Audio/Video/Materi Diniyah/Dokumen) with counts
+  * 3 view modes: Grid, List, Compact (toggle with icons)
+  * Search bar + category filter
+  * Hero section with gradient + stats (Knowledge Assets, Jenis Koleksi)
+  * Pagination
+- Added /knowledge to sitemap.ts static routes
+- Added /knowledge to Command Palette QUICK_LINKS (as "Knowledge Hub" at position 2)
+- Updated about page: "ekosistem digital pengetahuan Islam" + "Digital Knowledge Center"
+
+Verification:
+- Lint: 0 errors, 17 warnings (all pre-existing)
+- All 16 public routes 200 OK (including new /knowledge)
+- All 15 admin routes 200 OK
+- Agent Browser verified:
+  * Home: title "MDTA Digital Knowledge Center — Membangun Peradaban Melalui Ilmu dan Teknologi", nav includes Knowledge Hub, hero shows new brand
+  * Knowledge Hub: full page with collection tabs, view modes, grid view working
+  * Admin Dashboard: sidebar shows "Knowledge Dashboard", "Knowledge Management", "Penulis & Kontributor"; greeting "aktivitas Knowledge Center"; stats show "Knowledge Assets", "Penulis & Kontributor"
+  * RSS feed: title + description rebranded
+  * Sitemap: /knowledge included
+
+Stage Summary:
+- Complete rebranding from "Perpustakaan Digital" / "Islamic Knowledge Center" to "MDTA Digital Knowledge Center"
+- Tagline "Membangun Peradaban Melalui Ilmu dan Teknologi" integrated throughout
+- New Knowledge Hub page (/knowledge) with multi-collection exploration + 3 view modes
+- Admin terminology updated: Knowledge Dashboard, Knowledge Management, Knowledge Assets
+- All SEO endpoints (sitemap, robots, RSS, OG, Twitter) rebranded
+- PWA manifest rebranded
+- Zero "Perpustakaan" or "Islamic Knowledge Center" references remain in source
+- All existing features preserved (no architecture/DB/feature changes)

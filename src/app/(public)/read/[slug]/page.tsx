@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!book) return { title: "Buku tidak ditemukan" };
   return {
     title: `Baca: ${book.title}`,
-    description: book.seoDescription || book.description || `Baca ${book.title} online di Islamic Knowledge Center.`,
+    description: book.seoDescription || book.description || `Baca ${book.title} online di MDTA Digital Knowledge Center.`,
     openGraph: {
       title: book.title,
       description: book.description || "",

@@ -47,13 +47,13 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Islamic Knowledge Center — MDTA MIFTAHUL ULUM 01</title>
+    <title>MDTA Digital Knowledge Center</title>
     <link>${escapeXml(base)}</link>
     <atom:link href="${escapeXml(base + "/feed.xml")}" rel="self" type="application/rss+xml" />
-    <description>Koleksi terbaru kitab, buku, artikel, audio, video, dan materi diniyah dari Islamic Knowledge Center MDTA MIFTAHUL ULUM 01.</description>
+    <description>Pengetahuan Islam terbaru: kitab, buku, artikel, materi pembelajaran, audio, video, dan referensi keislaman dari MDTA Digital Knowledge Center. Membangun Peradaban Melalui Ilmu dan Teknologi.</description>
     <language>id</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
-    <generator>Next.js 16 — Islamic Knowledge Center</generator>
+    <generator>Next.js 16 — MDTA Digital Knowledge Center</generator>
 ${items}
   </channel>
 </rss>`;

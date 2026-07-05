@@ -91,5 +91,5 @@ export const SETTING_KEYS = {
   MAINTENANCE_END: "maintenance.end",
   MAINTENANCE_WHITELIST_IPS: "maintenance.whitelist_ips",
   // V2 — Branding
-  APP_CONCEPT: "app.concept", // "Islamic Knowledge Center"
+  APP_CONCEPT: "app.concept", // "MDTA Digital Knowledge Center"
 } as const;

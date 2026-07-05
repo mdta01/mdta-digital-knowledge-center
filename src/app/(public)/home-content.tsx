@@ -131,7 +131,7 @@ export function HomeContent({
             >
               <Badge className="mb-4 bg-gold/15 text-gold border-gold/30 backdrop-blur-sm">
                 <Sparkles className="h-3 w-3 mr-1.5" />
-                Perpustakaan Digital Islami Modern
+                MDTA Digital Knowledge Center — Modern Islamic Learning
               </Badge>
             </motion.div>
 
@@ -141,7 +141,7 @@ export function HomeContent({
               transition={{ duration: 0.7, delay: 0.15 }}
               className="font-serif text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.1] tracking-tight max-w-4xl"
             >
-              Perpustakaan Digital{" "}
+              MDTA Digital{" "}
               <span className="bg-gradient-to-r from-gold via-amber-200 to-gold bg-clip-text text-transparent">
                 MDTA MIFTAHUL ULUM 01
               </span>

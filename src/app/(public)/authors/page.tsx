@@ -4,7 +4,7 @@ import { AuthorsGrid } from "./authors-grid";
 
 export const metadata: Metadata = {
   title: "Penulis",
-  description: "Para ulama dan penulis yang karyanya tersedia di Perpustakaan Digital MDTA MIFTAHUL ULUM 01.",
+  description: "Para ulama, penulis, dan kontributor yang karyanya tersedia di MDTA Digital Knowledge Center.",
 };
 
 export const dynamic = "force-dynamic";

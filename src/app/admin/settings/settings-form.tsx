@@ -426,7 +426,7 @@ export function SettingsForm({ initial }: SettingsFormProps) {
                         : "var(--font-sans), sans-serif",
                   }}
                 >
-                  Perpustakaan Digital MDTA MIFTAHUL ULUM
+                  MDTA Digital Knowledge Center
                 </h3>
                 <p
                   className="text-sm text-white/90"

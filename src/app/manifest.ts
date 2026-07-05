@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Islamic Knowledge Center — MDTA MIFTAHUL ULUM 01",
-    short_name: "IKC MDTA",
+    name: "MDTA Digital Knowledge Center",
+    short_name: "MDTA Knowledge",
     description:
-      "Islamic Knowledge Center MDTA MIFTAHUL ULUM 01 — Pusat pengetahuan Islam modern: kitab, buku, artikel, audio, video, materi diniyah.",
+      "MDTA Digital Knowledge Center — Pusat Pengetahuan Islam Digital Modern: kitab, buku, artikel, materi pembelajaran, audio, video, dan referensi keislaman. Membangun Peradaban Melalui Ilmu dan Teknologi.",
     start_url: "/",
     display: "standalone",
     background_color: "#faf8f1",

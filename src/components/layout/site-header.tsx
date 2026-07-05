@@ -10,6 +10,7 @@ import {
   Menu,
   Search,
   X,
+  Library,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,9 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/", label: "Beranda", icon: BookOpen },
-  { href: "/books", label: "Buku", icon: BookOpen },
+  { href: "/knowledge", label: "Knowledge Hub", icon: Library },
   { href: "/kitab", label: "Kitab", icon: BookOpen },
+  { href: "/books", label: "Buku", icon: BookOpen },
   { href: "/artikel", label: "Artikel", icon: BookOpen },
   { href: "/audio", label: "Audio", icon: BookOpen },
   { href: "/video", label: "Video", icon: BookOpen },
@@ -77,7 +79,7 @@ export function SiteHeader() {
                   MDTA MIFTAHUL ULUM 01
                 </span>
                 <span className="text-[11px] text-muted-foreground tracking-wide">
-                  Islamic Knowledge Center
+                  Digital Knowledge Center
                 </span>
               </div>
             </Link>
