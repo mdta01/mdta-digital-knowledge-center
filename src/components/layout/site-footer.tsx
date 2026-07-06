@@ -1,12 +1,65 @@
+"use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { BookOpen, Mail, MapPin, Phone, Facebook, Instagram, Youtube, Send } from "lucide-react";
-import { settingService } from "@/lib/services";
 
-export async function SiteFooter() {
-  const settings = await settingService.getAll();
+/**
+ * SiteFooter — client component.
+ *
+ * Previously a server component that called settingService.getAll() on every
+ * page load, causing connection pool timeouts on Vercel serverless.
+ *
+ * Now renders immediately with defaults, then fetches settings client-side
+ * from the cached /api/public/settings endpoint. This ensures pages NEVER
+ * block on DB during server-side rendering.
+ */
+
+interface FooterSettings {
+  siteName?: string;
+  siteDescription?: string;
+  footerText?: string;
+  socialFacebook?: string;
+  socialInstagram?: string;
+  socialYoutube?: string;
+  socialTelegram?: string;
+  contactAddress?: string;
+  contactWhatsapp?: string;
+  contactEmail?: string;
+}
+
+const DEFAULTS: FooterSettings = {
+  siteName: "MDTA Digital Knowledge Center",
+  siteDescription: "Pusat Pengetahuan Islam Digital Modern",
+  footerText: "© MDTA MIFTAHUL ULUM 01",
+};
+
+// In-memory cache (survives across re-renders in the same client session)
+let _clientSettingsCache: FooterSettings | null = null;
+
+export function SiteFooter() {
+  const [settings, setSettings] = useState<FooterSettings>(_clientSettingsCache || DEFAULTS);
+
+  useEffect(() => {
+    if (_clientSettingsCache) return; // already fetched
+    fetch("/api/public/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) {
+          _clientSettingsCache = data;
+          setSettings(data);
+        }
+      })
+      .catch(() => {
+        // keep defaults on error
+      });
+  }, []);
 
   const year = new Date().getFullYear();
+  const footerText = (settings.footerText || DEFAULTS.footerText!).replace(
+    /\{year\}/g,
+    String(year)
+  );
 
   return (
     <footer className="mt-auto relative overflow-hidden border-t border-border/60 bg-gradient-to-b from-secondary/40 to-secondary/80">
@@ -160,10 +213,7 @@ export async function SiteFooter() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <p>
-            {settings.footerText?.replace(/\{year\}/g, String(year)) ||
-              `© ${year} MDTA MIFTAHUL ULUM 01. Hak cipta dilindungi.`}
-          </p>
+          <p>{footerText}</p>
           <div className="flex items-center gap-4">
             <Link href="/privacy" className="hover:text-primary transition-colors">Kebijakan Privasi</Link>
             <Link href="/terms" className="hover:text-primary transition-colors">Syarat Penggunaan</Link>

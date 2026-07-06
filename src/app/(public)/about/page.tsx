@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import Image from "next/image";
 import { BookOpen, Users, Target, Heart, Sparkles, Award } from "lucide-react";
-import { settingService, bookService } from "@/lib/services";
+import { bookService } from "@/lib/services";
 
 export const metadata: Metadata = {
   title: "Tentang Kami",
@@ -12,8 +12,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AboutPage() {
-  // Sequential queries to avoid connection pool exhaustion
-  const settings = await settingService.getAll();
+  // Only fetch stats (lightweight). Settings are loaded client-side by the footer.
   const stats = await bookService.publicStats();
 
   const statCards = [
@@ -149,16 +148,13 @@ export default async function AboutPage() {
         <div className="absolute inset-0 islamic-pattern opacity-30" />
         <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
           <blockquote className="font-serif text-xl sm:text-2xl lg:text-3xl text-white leading-relaxed font-medium italic">
-            {settings.islamicQuote ||
-              "Barangsiapa menempuh jalan untuk mencari ilmu, Allah akan memudahkan baginya jalan menuju surga."}
+            "Barangsiapa menempuh jalan untuk mencari ilmu, Allah akan memudahkan baginya jalan menuju surga."
           </blockquote>
-          {settings.quoteAuthor && (
-            <div className="mt-6 inline-flex items-center gap-2 text-gold text-sm">
-              <span className="h-px w-8 bg-gold/60" />
-              <span className="font-medium">{settings.quoteAuthor}</span>
-              <span className="h-px w-8 bg-gold/60" />
-            </div>
-          )}
+          <div className="mt-6 inline-flex items-center gap-2 text-gold text-sm">
+            <span className="h-px w-8 bg-gold/60" />
+            <span className="font-medium">HR. Muslim</span>
+            <span className="h-px w-8 bg-gold/60" />
+          </div>
         </div>
       </section>
     </div>

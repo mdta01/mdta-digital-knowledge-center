@@ -2,7 +2,6 @@ import {
   bookService,
   authorService,
   categoryService,
-  settingService,
 } from "@/lib/services";
 import { HomeV2 } from "./home-v2";
 
@@ -15,27 +14,26 @@ export default async function HomePage() {
   // Supabase Transaction Pooler allows only 1 connection per serverless function.
   // Running queries in sequence = 1 connection at a time = no timeout.
 
-  // 1. Settings first (lightweight, needed for footer + quote)
-  const settings = await settingService.getAll();
-
-  // 2. Stats (lightweight — 4 queries with individual .catch)
+  // 1. Stats (lightweight — 4 queries with individual .catch)
   const stats = await bookService.publicStats();
 
-  // 3. Featured books (small set)
+  // 2. Featured books (small set)
   const featured = await bookService.featured(4);
 
-  // 4. Latest books
+  // 3. Latest books
   const latest = await bookService.latest(8);
 
-  // 5. Popular books
+  // 4. Popular books
   const popular = await bookService.popular(8);
 
-  // 6. Categories
+  // 5. Categories
   const categories = await categoryService.list();
 
-  // 7. Authors (top 8)
+  // 6. Authors (top 8)
   const authors = await authorService.list({ pageSize: 8 });
 
+  // Settings are now loaded client-side by HomeV2 (via /api/public/settings)
+  // to avoid blocking server-side rendering on DB connection.
   return (
     <HomeV2
       latest={latest}
@@ -43,7 +41,7 @@ export default async function HomePage() {
       featured={featured}
       categories={categories.data}
       authors={authors.data}
-      settings={settings}
+      settings={{}}
       overview={{
         books: {
           total: stats.published,

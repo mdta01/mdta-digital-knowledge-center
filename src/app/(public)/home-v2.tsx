@@ -156,10 +156,19 @@ export function HomeV2({
   featured,
   categories,
   authors,
-  settings,
+  settings: serverSettings,
   overview,
 }: HomeV2Props) {
   const mouse = useMousePosition();
+  // Fetch settings client-side to avoid blocking server render on DB
+  const [settings, setSettings] = useState<Record<string, string>>(serverSettings || {});
+  useEffect(() => {
+    if (serverSettings?.islamicQuote) return; // already have settings
+    fetch("/api/public/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setSettings(data); })
+      .catch(() => {});
+  }, [serverSettings]);
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,

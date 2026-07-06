@@ -400,15 +400,17 @@ const DEFAULT_SETTINGS = {
 };
 
 // In-memory cache for settings (avoids hitting DB on every page load).
-// TTL: 60 seconds. Settings change rarely, so this is safe.
-let _settingsCache: { data: typeof DEFAULT_SETTINGS; ts: number } | null = null;
-const SETTINGS_CACHE_TTL = 60_000; // 60 seconds
+// TTL: 5 minutes. Uses global to survive across serverless invocations.
+const globalForSettings = globalThis as unknown as {
+  __settingsCache?: { data: typeof DEFAULT_SETTINGS; ts: number } | null;
+};
+const SETTINGS_CACHE_TTL = 300_000; // 5 minutes
 
 export const settingService = {
   async getAll() {
     // Return cached if fresh
-    if (_settingsCache && Date.now() - _settingsCache.ts < SETTINGS_CACHE_TTL) {
-      return _settingsCache.data;
+    if (globalForSettings.__settingsCache && Date.now() - globalForSettings.__settingsCache.ts < SETTINGS_CACHE_TTL) {
+      return globalForSettings.__settingsCache.data;
     }
     try {
       const json = await settingRepository.getAllJSON();
@@ -438,8 +440,8 @@ export const settingService = {
         themeFontBody: json[SETTING_KEYS.THEME_FONT_BODY] ?? DEFAULT_SETTINGS.themeFontBody,
         themeBorderRadius: json[SETTING_KEYS.THEME_BORDER_RADIUS] ?? DEFAULT_SETTINGS.themeBorderRadius,
       };
-      // Cache the result
-      _settingsCache = { data: result, ts: Date.now() };
+      // Cache the result globally
+      globalForSettings.__settingsCache = { data: result, ts: Date.now() };
       return result;
     } catch (e) {
       console.error("[settingService.getAll] error, using defaults:", e);
@@ -480,7 +482,7 @@ export const settingService = {
       )
     );
     // Invalidate cache
-    _settingsCache = null;
+    globalForSettings.__settingsCache = null;
   },
 };
 
