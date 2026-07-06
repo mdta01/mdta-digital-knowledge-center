@@ -7,7 +7,9 @@ import {
 } from "@/lib/services";
 import { HomeV2 } from "./home-v2";
 
-export const revalidate = 60;
+// Always render at request time — prevents build-time prerendering
+// which would exhaust the Supabase connection pool with concurrent queries.
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [latest, popular, featured, categories, authors, settings, overview] =
