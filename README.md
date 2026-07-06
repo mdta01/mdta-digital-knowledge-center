@@ -54,58 +54,20 @@ This project is configured for **Supabase PostgreSQL** + **Vercel** deployment.
 ### Step 1: Push to GitHub ✅ (Already Done)
 Repo: https://github.com/mdta01/mdta-digital-knowledge-center
 
-### Step 2: Set up Supabase Database ✅ (Already Created)
+### Step 2: Set up Supabase Database ✅ (Already Created & Migrated)
 - **Supabase Project**: `tahvikmhjbupxzryofuz`
-- **Host**: `db.tahvikmhjbupxzryofuz.supabase.co`
-- **Port**: `5432` (direct) / `6543` (pooler — recommended for Vercel)
+- **Region**: `ap-southeast-1` (Shared Pooler: `aws-1-ap-southeast-1`)
+- **Pooler Host**: `aws-1-ap-southeast-1.pooler.supabase.com`
+- **User**: `postgres.tahvikmhjbupxzryofuz`
 - **Database**: `postgres`
-- **User**: `postgres`
-- **Password**: Set in Supabase Dashboard → Project Settings → Database
-
-**Get your Connection Pooler URL** (recommended for Vercel serverless):
-1. Go to Supabase Dashboard → your project → Settings → Database
-2. Under "Connection string", select **Transaction pooler** (port 6543)
-3. Copy the URL — it looks like:
-   ```
-   postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
-   ```
-4. Also copy the **Session pooler** URL (port 5432) for `DIRECT_URL` (used by prisma migrate):
-   ```
-   postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-0-[region].pooler.supabase.com:5432/postgres
-   ```
+- **Tables**: 15 tables created (User, Book, Author, Category, Page, Setting, Upload, ActivityLog, ContactMessage, Tag, BookFile, BookRevision, Bookmark, ReadingProgress, Notification, AnalyticsEvent)
+- **Demo Data**: 1 admin, 10 categories, 5 authors, 6 books, 6 pages, 12 settings
 
 ### Step 3: Prisma Schema ✅ (Already PostgreSQL)
 The `prisma/schema.prisma` is already configured for PostgreSQL with both `url` (pooler) and `directUrl` (direct) for migrations.
 
-### Step 4: Initialize Production Database
-
-> **IMPORTANT**: The Supabase **Connection Pooler** must be enabled for your project.
-> Enable it at: Supabase Dashboard → your project → **Settings** → **Database** → **Connection pooling** → toggle ON
->
-> Then copy both URLs from the same page:
-> - **Transaction pooler** (port 6543) → use as `DATABASE_URL`
-> - **Session pooler** (port 5432) → use as `DIRECT_URL`
-
-Set up `.env` locally with your Supabase pooler credentials:
-
-```bash
-# .env (local)
-DATABASE_URL="postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:5432/postgres"
-JWT_SECRET="generate-with-openssl-rand-hex-32"
-ADMIN_EMAIL="admin@mdta-miftahululum.sch.id"
-ADMIN_PASSWORD="admin12345"
-ADMIN_NAME="Super Admin"
-NEXT_PUBLIC_SITE_URL="https://your-project.vercel.app"
-```
-
-Then run the one-time setup script (creates tables + seeds demo data):
-
-```bash
-bun run setup-db
-```
-
-This runs `prisma generate` → `prisma db push` (creates 15 tables) → `seed` (demo data + super admin).
+### Step 4: Initialize Production Database ✅ (Already Done)
+Database tables created and demo data seeded via `bun run setup-db`.
 
 ### Step 5: Import to Vercel
 1. Go to [vercel.com/new](https://vercel.com/new)
@@ -115,9 +77,9 @@ This runs `prisma generate` → `prisma db push` (creates 15 tables) → `seed` 
 5. Add Environment Variables (all required):
    | Variable | Value |
    |----------|-------|
-   | `DATABASE_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true` |
-   | `DIRECT_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:5432/postgres` |
-   | `JWT_SECRET` | Generate with `openssl rand -hex 32` |
+   | `DATABASE_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true` |
+   | `DIRECT_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres` |
+   | `JWT_SECRET` | `mdta-kc-jwt-secret-2026-change-in-production-32chars` (or generate with `openssl rand -hex 32`) |
    | `ADMIN_EMAIL` | `admin@mdta-miftahululum.sch.id` |
    | `ADMIN_PASSWORD` | `admin12345` (change after first login) |
    | `ADMIN_NAME` | `Super Admin` |
