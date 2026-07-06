@@ -31,57 +31,103 @@ import { hashPassword } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 
 // ---------- BOOK SERVICE ----------
+const EMPTY_RESULT = { data: [], total: 0, page: 1, pageSize: 12, totalPages: 0 };
+
 export const bookService = {
   async getById(id: string) {
-    return bookRepository.findById(id);
+    try {
+      return await bookRepository.findById(id);
+    } catch (e) {
+      console.error("[bookService.getById] error:", e);
+      return null;
+    }
   },
   async getBySlug(slug: string) {
-    return bookRepository.findBySlug(slug);
+    try {
+      return await bookRepository.findBySlug(slug);
+    } catch (e) {
+      console.error("[bookService.getBySlug] error:", e);
+      return null;
+    }
   },
   async listPublished(params: { page?: number; pageSize?: number; search?: string; categoryId?: string; authorId?: string; tagId?: string; collectionType?: string } = {}) {
-    const where: Record<string, unknown> = { status: "PUBLISHED" };
-    if (params.categoryId) where.categoryId = params.categoryId;
-    if (params.authorId) where.authorId = params.authorId;
-    if (params.tagId) where.tags = { some: { id: params.tagId } };
-    if (params.collectionType) where.collectionType = params.collectionType;
-    return bookRepository.findAll({
-      where,
-      page: params.page,
-      pageSize: params.pageSize,
-      search: params.search,
-      searchFields: ["title", "description", "isbn"],
-      orderBy: { createdAt: "desc" },
-    });
+    try {
+      const where: Record<string, unknown> = { status: "PUBLISHED" };
+      if (params.categoryId) where.categoryId = params.categoryId;
+      if (params.authorId) where.authorId = params.authorId;
+      if (params.tagId) where.tags = { some: { id: params.tagId } };
+      if (params.collectionType) where.collectionType = params.collectionType;
+      return await bookRepository.findAll({
+        where,
+        page: params.page,
+        pageSize: params.pageSize,
+        search: params.search,
+        searchFields: ["title", "description", "isbn"],
+        orderBy: { createdAt: "desc" },
+      });
+    } catch (e) {
+      console.error("[bookService.listPublished] error:", e);
+      return EMPTY_RESULT;
+    }
   },
   async listAll(params: { page?: number; pageSize?: number; search?: string; status?: string; collectionType?: string } = {}) {
-    const where: Record<string, unknown> = {};
-    if (params.status) where.status = params.status;
-    if (params.collectionType) where.collectionType = params.collectionType;
-    return bookRepository.findAll({
-      where,
-      page: params.page,
-      pageSize: params.pageSize,
-      search: params.search,
-      searchFields: ["title", "description", "isbn", "slug"],
-      orderBy: { updatedAt: "desc" },
-    });
+    try {
+      const where: Record<string, unknown> = {};
+      if (params.status) where.status = params.status;
+      if (params.collectionType) where.collectionType = params.collectionType;
+      return await bookRepository.findAll({
+        where,
+        page: params.page,
+        pageSize: params.pageSize,
+        search: params.search,
+        searchFields: ["title", "description", "isbn", "slug"],
+        orderBy: { updatedAt: "desc" },
+      });
+    } catch (e) {
+      console.error("[bookService.listAll] error:", e);
+      return EMPTY_RESULT;
+    }
   },
   async featured(limit = 6) {
-    return bookRepository.findFeatured(limit);
+    try {
+      return await bookRepository.findFeatured(limit);
+    } catch (e) {
+      console.error("[bookService.featured] error:", e);
+      return [];
+    }
   },
   async popular(limit = 8) {
-    return bookRepository.findPopular(limit);
+    try {
+      return await bookRepository.findPopular(limit);
+    } catch (e) {
+      console.error("[bookService.popular] error:", e);
+      return [];
+    }
   },
   async latest(limit = 8) {
-    return bookRepository.findLatest(limit);
+    try {
+      return await bookRepository.findLatest(limit);
+    } catch (e) {
+      console.error("[bookService.latest] error:", e);
+      return [];
+    }
   },
   async related(slug: string, limit = 4) {
-    const book = await bookRepository.findBySlug(slug);
-    if (!book) return [];
-    return bookRepository.findRelated(book, limit);
+    try {
+      const book = await bookRepository.findBySlug(slug);
+      if (!book) return [];
+      return await bookRepository.findRelated(book, limit);
+    } catch (e) {
+      console.error("[bookService.related] error:", e);
+      return [];
+    }
   },
   async incrementViews(id: string) {
-    return bookRepository.incrementViews(id);
+    try {
+      return await bookRepository.incrementViews(id);
+    } catch (e) {
+      console.error("[bookService.incrementViews] error:", e);
+    }
   },
   async create(data: CreateBookInput) {
     if (!data.slug) data.slug = slugify(data.title);
@@ -107,43 +153,66 @@ export const bookService = {
     return bookRepository.restore(id);
   },
   async stats() {
-    const [total, published, draft, featured, totalViews, totalDownloads, byType] =
-      await Promise.all([
-        db.book.count({ where: { deletedAt: null } }),
-        db.book.count({ where: { deletedAt: null, status: "PUBLISHED" } }),
-        db.book.count({ where: { deletedAt: null, status: "DRAFT" } }),
-        db.book.count({ where: { deletedAt: null, featured: true } }),
-        db.book.aggregate({ _sum: { views: true } }),
-        db.book.aggregate({ _sum: { downloads: true } }),
-        db.book.groupBy({
-          by: ["collectionType"],
-          where: { deletedAt: null },
-          _count: { _all: true },
-        }),
-      ]);
-    return {
-      total,
-      published,
-      draft,
-      featured,
-      totalViews: totalViews._sum.views ?? 0,
-      totalDownloads: totalDownloads._sum.downloads ?? 0,
-      byType: Object.fromEntries(byType.map((t) => [t.collectionType, t._count._all])),
-    };
+    try {
+      const [total, published, draft, featured, totalViews, totalDownloads, byType] =
+        await Promise.all([
+          db.book.count({ where: { deletedAt: null } }),
+          db.book.count({ where: { deletedAt: null, status: "PUBLISHED" } }),
+          db.book.count({ where: { deletedAt: null, status: "DRAFT" } }),
+          db.book.count({ where: { deletedAt: null, featured: true } }),
+          db.book.aggregate({ _sum: { views: true } }),
+          db.book.aggregate({ _sum: { downloads: true } }),
+          db.book.groupBy({
+            by: ["collectionType"],
+            where: { deletedAt: null },
+            _count: { _all: true },
+          }),
+        ]);
+      return {
+        total,
+        published,
+        draft,
+        featured,
+        totalViews: totalViews?._sum?.views ?? 0,
+        totalDownloads: totalDownloads?._sum?.downloads ?? 0,
+        byType: Object.fromEntries((byType || []).map((t) => [t.collectionType, t._count._all])),
+      };
+    } catch (e) {
+      console.error("[bookService.stats] error:", e);
+      return {
+        total: 0,
+        published: 0,
+        draft: 0,
+        featured: 0,
+        totalViews: 0,
+        totalDownloads: 0,
+        byType: {},
+      };
+    }
   },
 };
 
 // ---------- AUTHOR SERVICE ----------
 export const authorService = {
   async getBySlug(slug: string) {
-    return authorRepository.findBySlug(slug);
+    try {
+      return await authorRepository.findBySlug(slug);
+    } catch (e) {
+      console.error("[authorService.getBySlug] error:", e);
+      return null;
+    }
   },
   async list(params: { page?: number; pageSize?: number; search?: string } = {}) {
-    return authorRepository.findAll({
-      page: params.page,
-      pageSize: params.pageSize,
-      search: params.search,
-    });
+    try {
+      return await authorRepository.findAll({
+        page: params.page,
+        pageSize: params.pageSize,
+        search: params.search,
+      });
+    } catch (e) {
+      console.error("[authorService.list] error:", e);
+      return { data: [], total: 0, page: 1, pageSize: 12, totalPages: 0 };
+    }
   },
   async create(data: Parameters<typeof authorRepository.create>[0]) {
     if (!data.slug) data.slug = slugify(data.name);
@@ -157,20 +226,35 @@ export const authorService = {
     return authorRepository.softDelete(id);
   },
   async stats() {
-    return db.author.count({ where: { deletedAt: null } });
+    try {
+      return await db.author.count({ where: { deletedAt: null } });
+    } catch (e) {
+      console.error("[authorService.stats] error:", e);
+      return 0;
+    }
   },
 };
 
 // ---------- CATEGORY SERVICE ----------
 export const categoryService = {
   async getBySlug(slug: string) {
-    return categoryRepository.findBySlug(slug);
+    try {
+      return await categoryRepository.findBySlug(slug);
+    } catch (e) {
+      console.error("[categoryService.getBySlug] error:", e);
+      return null;
+    }
   },
   async list(params: { search?: string } = {}) {
-    return categoryRepository.findAll({
-      search: params.search,
-      pageSize: 100,
-    });
+    try {
+      return await categoryRepository.findAll({
+        search: params.search,
+        pageSize: 100,
+      });
+    } catch (e) {
+      console.error("[categoryService.list] error:", e);
+      return { data: [], total: 0, page: 1, pageSize: 100, totalPages: 0 };
+    }
   },
   async create(data: Parameters<typeof categoryRepository.create>[0]) {
     if (!data.slug) data.slug = slugify(data.name);
@@ -184,21 +268,36 @@ export const categoryService = {
     return categoryRepository.softDelete(id);
   },
   async stats() {
-    return db.category.count({ where: { deletedAt: null } });
+    try {
+      return await db.category.count({ where: { deletedAt: null } });
+    } catch (e) {
+      console.error("[categoryService.stats] error:", e);
+      return 0;
+    }
   },
 };
 
 // ---------- PAGE SERVICE ----------
 export const pageService = {
   async getBySlug(slug: string) {
-    return pageRepository.findBySlug(slug);
+    try {
+      return await pageRepository.findBySlug(slug);
+    } catch (e) {
+      console.error("[pageService.getBySlug] error:", e);
+      return null;
+    }
   },
   async list(params: { page?: number; pageSize?: number; search?: string } = {}) {
-    return pageRepository.findAll({
-      page: params.page,
-      pageSize: params.pageSize,
-      search: params.search,
-    });
+    try {
+      return await pageRepository.findAll({
+        page: params.page,
+        pageSize: params.pageSize,
+        search: params.search,
+      });
+    } catch (e) {
+      console.error("[pageService.list] error:", e);
+      return { data: [], total: 0, page: 1, pageSize: 50, totalPages: 0 };
+    }
   },
   async create(data: Parameters<typeof pageRepository.create>[0]) {
     if (!data.slug) data.slug = slugify(data.title);
@@ -238,41 +337,77 @@ export const userService = {
     return userRepository.softDelete(id);
   },
   async stats() {
-    return db.user.count({ where: { deletedAt: null } });
+    try {
+      return await db.user.count({ where: { deletedAt: null } });
+    } catch (e) {
+      console.error("[userService.stats] error:", e);
+      return 0;
+    }
   },
 };
 
 // ---------- SETTING SERVICE ----------
+const DEFAULT_SETTINGS = {
+  siteName: "MDTA Digital Knowledge Center",
+  siteDescription: "",
+  siteKeywords: "",
+  siteLogo: "",
+  siteFavicon: "",
+  footerText: "© MDTA MIFTAHUL ULUM 01 — Membangun Peradaban Melalui Ilmu dan Teknologi",
+  primaryColor: "#059669",
+  accentColor: "#d4af37",
+  socialFacebook: "",
+  socialInstagram: "",
+  socialYoutube: "",
+  socialTelegram: "",
+  contactAddress: "",
+  contactWhatsapp: "",
+  contactEmail: "",
+  contactMapsUrl: "",
+  googleAnalytics: "",
+  islamicQuote: "Membaca adalah kunci pembuka pintu kebijaksanaan.",
+  quoteAuthor: "Imam Al-Ghazali",
+  themeBgColor: "#fafaf9",
+  themeHeroImage: "",
+  themeFontHeading: "serif",
+  themeFontBody: "sans",
+  themeBorderRadius: "16",
+};
+
 export const settingService = {
   async getAll() {
-    const json = await settingRepository.getAllJSON();
-    return {
-      siteName: json[SETTING_KEYS.SITE_NAME] ?? "MDTA Digital Knowledge Center",
-      siteDescription: json[SETTING_KEYS.SITE_DESCRIPTION] ?? "",
-      siteKeywords: json[SETTING_KEYS.SITE_KEYWORDS] ?? "",
-      siteLogo: json[SETTING_KEYS.SITE_LOGO] ?? "",
-      siteFavicon: json[SETTING_KEYS.SITE_FAVICON] ?? "",
-      footerText: json[SETTING_KEYS.FOOTER_TEXT] ?? "© MDTA MIFTAHUL ULUM 01 — Membangun Peradaban Melalui Ilmu dan Teknologi",
-      primaryColor: json[SETTING_KEYS.PRIMARY_COLOR] ?? "#059669",
-      accentColor: json[SETTING_KEYS.ACCENT_COLOR] ?? "#d4af37",
-      socialFacebook: json[SETTING_KEYS.SOCIAL_FACEBOOK] ?? "",
-      socialInstagram: json[SETTING_KEYS.SOCIAL_INSTAGRAM] ?? "",
-      socialYoutube: json[SETTING_KEYS.SOCIAL_YOUTUBE] ?? "",
-      socialTelegram: json[SETTING_KEYS.SOCIAL_TELEGRAM] ?? "",
-      contactAddress: json[SETTING_KEYS.CONTACT_ADDRESS] ?? "",
-      contactWhatsapp: json[SETTING_KEYS.CONTACT_WHATSAPP] ?? "",
-      contactEmail: json[SETTING_KEYS.CONTACT_EMAIL] ?? "",
-      contactMapsUrl: json[SETTING_KEYS.CONTACT_MAPS_URL] ?? "",
-      googleAnalytics: json[SETTING_KEYS.GOOGLE_ANALYTICS] ?? "",
-      islamicQuote: json[SETTING_KEYS.ISLAMIC_QUOTE] ?? "Membaca adalah kunci pembuka pintu kebijaksanaan.",
-      quoteAuthor: json[SETTING_KEYS.QUOTE_AUTHOR] ?? "Imam Al-Ghazali",
-      // V2 — Theme customizer
-      themeBgColor: json[SETTING_KEYS.THEME_BG_COLOR] ?? "#fafaf9",
-      themeHeroImage: json[SETTING_KEYS.THEME_HERO_IMAGE] ?? "",
-      themeFontHeading: json[SETTING_KEYS.THEME_FONT_HEADING] ?? "serif",
-      themeFontBody: json[SETTING_KEYS.THEME_FONT_BODY] ?? "sans",
-      themeBorderRadius: json[SETTING_KEYS.THEME_BORDER_RADIUS] ?? "16",
-    };
+    try {
+      const json = await settingRepository.getAllJSON();
+      return {
+        siteName: json[SETTING_KEYS.SITE_NAME] ?? DEFAULT_SETTINGS.siteName,
+        siteDescription: json[SETTING_KEYS.SITE_DESCRIPTION] ?? DEFAULT_SETTINGS.siteDescription,
+        siteKeywords: json[SETTING_KEYS.SITE_KEYWORDS] ?? DEFAULT_SETTINGS.siteKeywords,
+        siteLogo: json[SETTING_KEYS.SITE_LOGO] ?? DEFAULT_SETTINGS.siteLogo,
+        siteFavicon: json[SETTING_KEYS.SITE_FAVICON] ?? DEFAULT_SETTINGS.siteFavicon,
+        footerText: json[SETTING_KEYS.FOOTER_TEXT] ?? DEFAULT_SETTINGS.footerText,
+        primaryColor: json[SETTING_KEYS.PRIMARY_COLOR] ?? DEFAULT_SETTINGS.primaryColor,
+        accentColor: json[SETTING_KEYS.ACCENT_COLOR] ?? DEFAULT_SETTINGS.accentColor,
+        socialFacebook: json[SETTING_KEYS.SOCIAL_FACEBOOK] ?? DEFAULT_SETTINGS.socialFacebook,
+        socialInstagram: json[SETTING_KEYS.SOCIAL_INSTAGRAM] ?? DEFAULT_SETTINGS.socialInstagram,
+        socialYoutube: json[SETTING_KEYS.SOCIAL_YOUTUBE] ?? DEFAULT_SETTINGS.socialYoutube,
+        socialTelegram: json[SETTING_KEYS.SOCIAL_TELEGRAM] ?? DEFAULT_SETTINGS.socialTelegram,
+        contactAddress: json[SETTING_KEYS.CONTACT_ADDRESS] ?? DEFAULT_SETTINGS.contactAddress,
+        contactWhatsapp: json[SETTING_KEYS.CONTACT_WHATSAPP] ?? DEFAULT_SETTINGS.contactWhatsapp,
+        contactEmail: json[SETTING_KEYS.CONTACT_EMAIL] ?? DEFAULT_SETTINGS.contactEmail,
+        contactMapsUrl: json[SETTING_KEYS.CONTACT_MAPS_URL] ?? DEFAULT_SETTINGS.contactMapsUrl,
+        googleAnalytics: json[SETTING_KEYS.GOOGLE_ANALYTICS] ?? DEFAULT_SETTINGS.googleAnalytics,
+        islamicQuote: json[SETTING_KEYS.ISLAMIC_QUOTE] ?? DEFAULT_SETTINGS.islamicQuote,
+        quoteAuthor: json[SETTING_KEYS.QUOTE_AUTHOR] ?? DEFAULT_SETTINGS.quoteAuthor,
+        themeBgColor: json[SETTING_KEYS.THEME_BG_COLOR] ?? DEFAULT_SETTINGS.themeBgColor,
+        themeHeroImage: json[SETTING_KEYS.THEME_HERO_IMAGE] ?? DEFAULT_SETTINGS.themeHeroImage,
+        themeFontHeading: json[SETTING_KEYS.THEME_FONT_HEADING] ?? DEFAULT_SETTINGS.themeFontHeading,
+        themeFontBody: json[SETTING_KEYS.THEME_FONT_BODY] ?? DEFAULT_SETTINGS.themeFontBody,
+        themeBorderRadius: json[SETTING_KEYS.THEME_BORDER_RADIUS] ?? DEFAULT_SETTINGS.themeBorderRadius,
+      };
+    } catch (e) {
+      console.error("[settingService.getAll] error, using defaults:", e);
+      return DEFAULT_SETTINGS;
+    }
   },
   async updateAll(values: Record<string, string>) {
     const map: Record<string, string> = {
@@ -381,34 +516,56 @@ export const tagService = {
 // ---------- DASHBOARD STATS ----------
 export const dashboardService = {
   async getOverview() {
-    const [bookStats, authorCount, categoryCount, userCount, messageCount, recentActivity, popularBooks, recentUploads, unreadNotifications, storageStats] =
-      await Promise.all([
-        bookService.stats(),
-        authorService.stats(),
-        categoryService.stats(),
-        userService.stats(),
-        db.contactMessage.count(),
-        activityLogRepository.findAll({ pageSize: 8 }),
-        db.upload.findMany({
-          where: { deletedAt: null },
-          orderBy: { createdAt: "desc" },
-          take: 5,
-        }),
-        db.notification.count({ where: { isRead: false } }),
-        db.upload.aggregate({ _sum: { size: true } }),
-      ]);
-    return {
-      books: bookStats,
-      authors: authorCount,
-      categories: categoryCount,
-      users: userCount,
-      messages: messageCount,
-      recentActivity: recentActivity.data,
-      popularBooks,
-      recentUploads,
-      unreadNotifications,
-      storageUsed: storageStats?._sum?.size ?? 0,
-    };
+    try {
+      const [bookStats, authorCount, categoryCount, userCount, messageCount, recentActivity, popularBooks, recentUploads, unreadNotifications, storageStats] =
+        await Promise.all([
+          bookService.stats(),
+          authorService.stats(),
+          categoryService.stats(),
+          userService.stats(),
+          db.contactMessage.count().catch(() => 0),
+          activityLogRepository.findAll({ pageSize: 8 }).catch(() => ({ data: [], total: 0 })),
+          db.book.findMany({
+            where: { deletedAt: null, status: "PUBLISHED" },
+            orderBy: { views: "desc" },
+            take: 5,
+            include: { author: true, category: true },
+          }).catch(() => []),
+          db.upload.findMany({
+            where: { deletedAt: null },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+          }).catch(() => []),
+          db.notification.count({ where: { isRead: false } }).catch(() => 0),
+          db.upload.aggregate({ _sum: { size: true } }).catch(() => null),
+        ]);
+      return {
+        books: bookStats || { total: 0, published: 0, draft: 0, featured: 0, totalViews: 0, totalDownloads: 0, byType: {} },
+        authors: authorCount || 0,
+        categories: categoryCount || 0,
+        users: userCount || 0,
+        messages: messageCount || 0,
+        recentActivity: recentActivity?.data || [],
+        popularBooks: popularBooks || [],
+        recentUploads: recentUploads || [],
+        unreadNotifications: unreadNotifications || 0,
+        storageUsed: storageStats?._sum?.size ?? 0,
+      };
+    } catch (e) {
+      console.error("[dashboardService.getOverview] error:", e);
+      return {
+        books: { total: 0, published: 0, draft: 0, featured: 0, totalViews: 0, totalDownloads: 0, byType: {} },
+        authors: 0,
+        categories: 0,
+        users: 0,
+        messages: 0,
+        recentActivity: [],
+        popularBooks: [],
+        recentUploads: [],
+        unreadNotifications: 0,
+        storageUsed: 0,
+      };
+    }
   },
 };
 
