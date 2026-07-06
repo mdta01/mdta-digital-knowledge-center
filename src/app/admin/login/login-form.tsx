@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@mdta-miftahululum.sch.id");
-  const [password, setPassword] = useState("admin12345");
+  const [email, setEmail] = useState("mdtadigital@center");
+  const [password, setPassword] = useState("mdta@01");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -142,7 +142,7 @@ export function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 h-11"
-                  placeholder="admin@mdta-miftahululum.sch.id"
+                  placeholder="mdtadigital@center"
                 />
               </div>
             </div>

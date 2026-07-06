@@ -42,8 +42,8 @@ bun run dev
 Open [http://localhost:3000](http://localhost:3000)
 
 **Admin**: [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
-- Email: `admin@mdta-miftahululum.sch.id`
-- Password: `admin12345`
+- Email: `mdtadigital@center`
+- Password: `mdta@01`
 
 ---
 
@@ -80,8 +80,8 @@ Database tables created and demo data seeded via `bun run setup-db`.
    | `DATABASE_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1` |
    | `DIRECT_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres` |
    | `JWT_SECRET` | `mdta-kc-jwt-secret-2026-change-in-production-32chars` (or generate with `openssl rand -hex 32`) |
-   | `ADMIN_EMAIL` | `admin@mdta-miftahululum.sch.id` |
-   | `ADMIN_PASSWORD` | `admin12345` (change after first login) |
+   | `ADMIN_EMAIL` | `mdtadigital@center` |
+   | `ADMIN_PASSWORD` | `mdta@01` |
    | `ADMIN_NAME` | `Super Admin` |
    | `NEXT_PUBLIC_SITE_URL` | `https://your-project.vercel.app` (update after first deploy) |
 6. Click **Deploy**

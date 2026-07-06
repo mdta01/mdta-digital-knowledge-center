@@ -13,21 +13,36 @@ async function main() {
   console.log("→ Seeding…");
 
   // ---------- Admin ----------
-  const existingAdmin = await prisma.user.findUnique({
+  // Remove old admin if migrating from previous credentials
+  await prisma.user.deleteMany({
     where: { email: "admin@mdta-miftahululum.sch.id" },
+  }).catch(() => {});
+
+  const adminEmail = process.env.ADMIN_EMAIL || "mdtadigital@center";
+  const adminPassword = process.env.ADMIN_PASSWORD || "mdta@01";
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
   });
   if (!existingAdmin) {
-    const password = await bcrypt.hash("admin12345", 10);
+    const password = await bcrypt.hash(adminPassword, 10);
     await prisma.user.create({
       data: {
-        email: "admin@mdta-miftahululum.sch.id",
+        email: adminEmail,
         password,
         name: "Super Admin",
         role: "SUPER_ADMIN",
         isActive: true,
       },
     });
-    console.log("✓ Created super admin: admin@mdta-miftahululum.sch.id / admin12345");
+    console.log(`✓ Created super admin: ${adminEmail} / ${adminPassword}`);
+  } else {
+    // Update password if admin already exists
+    const password = await bcrypt.hash(adminPassword, 10);
+    await prisma.user.update({
+      where: { email: adminEmail },
+      data: { password, role: "SUPER_ADMIN", isActive: true },
+    });
+    console.log(`✓ Updated super admin: ${adminEmail} / ${adminPassword}`);
   }
 
   // ---------- Categories ----------

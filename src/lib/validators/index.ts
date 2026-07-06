@@ -80,7 +80,7 @@ export const updatePageSchema = createPageSchema.partial();
 
 /** User validators */
 export const createUserSchema = z.object({
-  email: z.string().email("Email tidak valid"),
+  email: z.string().min(1, "Email wajib diisi").max(120),
   password: z.string().min(6, "Password minimal 6 karakter").max(120),
   name: z.string().min(1, "Nama wajib diisi").max(120),
   role: z.enum(["SUPER_ADMIN", "ADMIN", "EDITOR"]).default("EDITOR"),
@@ -95,7 +95,7 @@ export const updateUserWithoutPasswordSchema = updateUserSchema.extend({
 
 /** Auth validators */
 export const loginSchema = z.object({
-  email: z.string().email("Email tidak valid"),
+  email: z.string().min(1, "Email/username wajib diisi"),
   password: z.string().min(1, "Password wajib diisi"),
 });
 
