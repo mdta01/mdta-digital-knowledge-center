@@ -78,16 +78,34 @@ Repo: https://github.com/mdta01/mdta-digital-knowledge-center
 The `prisma/schema.prisma` is already configured for PostgreSQL with both `url` (pooler) and `directUrl` (direct) for migrations.
 
 ### Step 4: Initialize Production Database
-Run these locally with your Supabase credentials (set them in `.env` first):
+
+> **IMPORTANT**: The Supabase **Connection Pooler** must be enabled for your project.
+> Enable it at: Supabase Dashboard → your project → **Settings** → **Database** → **Connection pooling** → toggle ON
+>
+> Then copy both URLs from the same page:
+> - **Transaction pooler** (port 6543) → use as `DATABASE_URL`
+> - **Session pooler** (port 5432) → use as `DIRECT_URL`
+
+Set up `.env` locally with your Supabase pooler credentials:
 
 ```bash
-# Set in .env:
-# DATABASE_URL=postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
-# DIRECT_URL=postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:5432/postgres
-
-bun run db:push    # Creates all tables in Supabase
-bun run seed       # Seeds demo data + super admin
+# .env (local)
+DATABASE_URL="postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:5432/postgres"
+JWT_SECRET="generate-with-openssl-rand-hex-32"
+ADMIN_EMAIL="admin@mdta-miftahululum.sch.id"
+ADMIN_PASSWORD="admin12345"
+ADMIN_NAME="Super Admin"
+NEXT_PUBLIC_SITE_URL="https://your-project.vercel.app"
 ```
+
+Then run the one-time setup script (creates tables + seeds demo data):
+
+```bash
+bun run setup-db
+```
+
+This runs `prisma generate` → `prisma db push` (creates 15 tables) → `seed` (demo data + super admin).
 
 ### Step 5: Import to Vercel
 1. Go to [vercel.com/new](https://vercel.com/new)
