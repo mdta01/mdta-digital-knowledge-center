@@ -2,6 +2,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { CommandPalette } from "@/components/public/command-palette";
 import { AnalyticsTracker } from "@/components/public/analytics-tracker";
+import { TopProgressBar } from "@/components/layout/top-progress-bar";
 
 export default function PublicLayout({
   children,
@@ -10,6 +11,7 @@ export default function PublicLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
+      <TopProgressBar />
       <SiteHeader />
       <main className="flex-1">{children}</main>
       <SiteFooter />

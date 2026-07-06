@@ -67,13 +67,12 @@ function useMousePosition() {
 function AnimatedIslamicGeometry() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Rotating 8-point star */}
-      <motion.svg
-        className="absolute -top-32 -right-32 w-[600px] h-[600px] text-gold/12"
+      {/* Static 8-point star (CSS-animated, no JS) */}
+      <svg
+        className="absolute -top-32 -right-32 w-[500px] h-[500px] text-gold/12 animate-[spin_120s_linear_infinite]"
         viewBox="0 0 200 200"
         fill="none"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
+        aria-hidden
       >
         <g stroke="currentColor" strokeWidth="0.5">
           <polygon points="100,20 180,60 180,140 100,180 20,140 20,60" />
@@ -83,15 +82,14 @@ function AnimatedIslamicGeometry() {
           <circle cx="100" cy="100" r="35" />
           <circle cx="100" cy="100" r="20" />
         </g>
-      </motion.svg>
+      </svg>
 
-      {/* Counter-rotating arabesque */}
-      <motion.svg
-        className="absolute -bottom-40 -left-40 w-[500px] h-[500px] text-gold/10"
+      {/* Static arabesque (CSS-animated, no JS) */}
+      <svg
+        className="absolute -bottom-40 -left-40 w-[400px] h-[400px] text-gold/10 animate-[spin_90s_linear_infinite_reverse]"
         viewBox="0 0 200 200"
         fill="none"
-        animate={{ rotate: -360 }}
-        transition={{ duration: 90, repeat: Infinity, ease: "linear" }}
+        aria-hidden
       >
         <g stroke="currentColor" strokeWidth="0.6">
           {Array.from({ length: 12 }).map((_, i) => (
@@ -104,48 +102,11 @@ function AnimatedIslamicGeometry() {
           <circle cx="100" cy="100" r="80" />
           <circle cx="100" cy="100" r="60" />
         </g>
-      </motion.svg>
+      </svg>
 
-      {/* Floating particles */}
-      {Array.from({ length: 6 }).map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-2 h-2 rounded-full bg-gold/40"
-          style={{
-            left: `${15 + i * 14}%`,
-            top: `${20 + (i % 3) * 25}%`,
-          }}
-          animate={{
-            y: [0, -30, 0],
-            opacity: [0.3, 0.8, 0.3],
-            scale: [1, 1.3, 1],
-          }}
-          transition={{
-            duration: 4 + i,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: i * 0.5,
-          }}
-        />
-      ))}
-
-      {/* Gradient orbs */}
-      <motion.div
-        className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-gold/10 blur-3xl"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.4, 0.6, 0.4],
-        }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-emerald-400/10 blur-3xl"
-        animate={{
-          scale: [1.1, 1, 1.1],
-          opacity: [0.3, 0.5, 0.3],
-        }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-      />
+      {/* Gradient orbs (static, no animation — saves GPU) */}
+      <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-gold/10 blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-emerald-400/10 blur-3xl" />
     </div>
   );
 }
@@ -155,7 +116,7 @@ export function HomeV2({
   popular,
   featured,
   categories,
-  authors,
+  authors: serverAuthors,
   settings: serverSettings,
   overview,
 }: HomeV2Props) {
@@ -163,12 +124,38 @@ export function HomeV2({
   // Fetch settings client-side to avoid blocking server render on DB
   const [settings, setSettings] = useState<Record<string, string>>(serverSettings || {});
   useEffect(() => {
-    if (serverSettings?.islamicQuote) return; // already have settings
+    if (serverSettings?.islamicQuote) return;
     fetch("/api/public/settings")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { if (data) setSettings(data); })
       .catch(() => {});
   }, [serverSettings]);
+
+  // Lazy-load authors only when scrolled into view (IntersectionObserver)
+  const [authors, setAuthors] = useState<AuthorWithRelations[]>(serverAuthors || []);
+  const authorsRef = useRef<HTMLDivElement>(null);
+  const [authorsLoaded, setAuthorsLoaded] = useState(false);
+  useEffect(() => {
+    if (serverAuthors?.length || authorsLoaded) return;
+    const el = authorsRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setAuthorsLoaded(true);
+          fetch("/api/public/authors?pageSize=8")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data) => { if (data?.data) setAuthors(data.data); })
+            .catch(() => {});
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [serverAuthors, authorsLoaded]);
+
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -560,9 +547,10 @@ export function HomeV2({
         </div>
       </section>
 
-      {/* ===== AUTHORS ===== */}
-      {authors.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      {/* ===== AUTHORS (lazy-loaded on scroll) ===== */}
+      <div ref={authorsRef}>
+        {authors.length > 0 && (
+          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <SectionHeadingV2
             eyebrow="Para Penulis"
             title="Penulis Unggulan"
@@ -576,6 +564,7 @@ export function HomeV2({
           </div>
         </section>
       )}
+      </div>
 
       {/* ===== ISLAMIC QUOTE ===== */}
       {settings.islamicQuote && (

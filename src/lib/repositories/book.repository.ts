@@ -19,6 +19,19 @@ export type BookWithRelations = Prisma.BookGetPayload<{
   };
 }>;
 
+// Lightweight include for listings (no tags/files — saves bandwidth + query time)
+export type BookListItem = Prisma.BookGetPayload<{
+  include: {
+    category: true;
+    author: true;
+  };
+}>;
+
+const LIST_INCLUDE = {
+  category: true,
+  author: true,
+} as const;
+
 export interface CreateBookInput {
   title: string;
   slug: string;
@@ -120,7 +133,7 @@ export class BookRepository extends BaseRepository<
   async findFeatured(limit = 6): Promise<BookWithRelations[]> {
     return db.book.findMany({
       where: { featured: true, deletedAt: null, status: "PUBLISHED" },
-      include: this.include,
+      include: LIST_INCLUDE,
       orderBy: { createdAt: "desc" },
       take: limit,
     });
@@ -129,7 +142,7 @@ export class BookRepository extends BaseRepository<
   async findPopular(limit = 8): Promise<BookWithRelations[]> {
     return db.book.findMany({
       where: { deletedAt: null, status: "PUBLISHED" },
-      include: this.include,
+      include: LIST_INCLUDE,
       orderBy: { views: "desc" },
       take: limit,
     });
@@ -138,7 +151,7 @@ export class BookRepository extends BaseRepository<
   async findLatest(limit = 8): Promise<BookWithRelations[]> {
     return db.book.findMany({
       where: { deletedAt: null, status: "PUBLISHED" },
-      include: this.include,
+      include: LIST_INCLUDE,
       orderBy: { createdAt: "desc" },
       take: limit,
     });
