@@ -1,19 +1,22 @@
 // Prisma schema for MDTA Digital Knowledge Center
-// Repository Pattern is used in code so the datasource can be swapped to Supabase/PostgreSQL
-// by changing only the datasource provider + connection string.
+// Repository Pattern is used in code so the datasource can be swapped easily.
 //
-// For local development (SQLite):  provider = "sqlite",   DATABASE_URL=file:./db/custom.db
-// For Vercel/Supabase (Postgres):   provider = "postgresql", DATABASE_URL=postgresql://...
+// Production: PostgreSQL via Supabase (this config)
+//   DATABASE_URL=postgresql://postgres:[PASSWORD]@db.tahvikmhjbupxzryofuz.supabase.co:5432/postgres
+//   (For Vercel/serverless, use the connection POOLER URL on port 6543 instead — see README)
+//
+// Local dev fallback (SQLite): change provider to "sqlite" and set
+//   DATABASE_URL=file:./db/custom.db
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  // Use SQLite for local dev (filesystem). For Vercel/production, switch to "postgresql"
-  // and set DATABASE_URL to your Supabase/Neon/PlanetScale connection string.
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  // directUrl is used by prisma migrate/db push (bypasses connection pooler)
+  directUrl = env("DIRECT_URL")
 }
 
 // ============ AUTH & USERS ============

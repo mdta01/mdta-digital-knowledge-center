@@ -49,50 +49,67 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## 🌐 Deploy to Vercel
 
-### Step 1: Push to GitHub
+This project is configured for **Supabase PostgreSQL** + **Vercel** deployment.
+
+### Step 1: Push to GitHub ✅ (Already Done)
+Repo: https://github.com/mdta01/mdta-digital-knowledge-center
+
+### Step 2: Set up Supabase Database ✅ (Already Created)
+- **Supabase Project**: `tahvikmhjbupxzryofuz`
+- **Host**: `db.tahvikmhjbupxzryofuz.supabase.co`
+- **Port**: `5432` (direct) / `6543` (pooler — recommended for Vercel)
+- **Database**: `postgres`
+- **User**: `postgres`
+- **Password**: Set in Supabase Dashboard → Project Settings → Database
+
+**Get your Connection Pooler URL** (recommended for Vercel serverless):
+1. Go to Supabase Dashboard → your project → Settings → Database
+2. Under "Connection string", select **Transaction pooler** (port 6543)
+3. Copy the URL — it looks like:
+   ```
+   postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
+   ```
+4. Also copy the **Session pooler** URL (port 5432) for `DIRECT_URL` (used by prisma migrate):
+   ```
+   postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-0-[region].pooler.supabase.com:5432/postgres
+   ```
+
+### Step 3: Prisma Schema ✅ (Already PostgreSQL)
+The `prisma/schema.prisma` is already configured for PostgreSQL with both `url` (pooler) and `directUrl` (direct) for migrations.
+
+### Step 4: Initialize Production Database
+Run these locally with your Supabase credentials (set them in `.env` first):
+
 ```bash
-git init
-git add .
-git commit -m "Initial commit: MDTA Digital Knowledge Center"
-git branch -M main
-git remote add origin https://github.com/<your-user>/<your-repo>.git
-git push -u origin main
+# Set in .env:
+# DATABASE_URL=postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
+# DIRECT_URL=postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:5432/postgres
+
+bun run db:push    # Creates all tables in Supabase
+bun run seed       # Seeds demo data + super admin
 ```
 
-### Step 2: Set up Database (Supabase recommended)
-1. Create a free project at [supabase.com](https://supabase.com)
-2. Get your connection string from Project Settings → Database
-3. Format: `postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
-
-### Step 3: Update Prisma for PostgreSQL
-In `prisma/schema.prisma`, change the datasource provider:
-```prisma
-datasource db {
-  provider = "postgresql"  // was "sqlite"
-  url      = env("DATABASE_URL")
-}
-```
-
-### Step 4: Import to Vercel
+### Step 5: Import to Vercel
 1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import your GitHub repository
+2. Import repo `mdta01/mdta-digital-knowledge-center`
 3. Framework preset: **Next.js** (auto-detected)
-4. Add Environment Variables:
-   - `DATABASE_URL` = your Supabase Postgres connection string
-   - `JWT_SECRET` = generate with `openssl rand -hex 32`
-   - `ADMIN_EMAIL` = your admin email
-   - `ADMIN_PASSWORD` = a strong password
-   - `ADMIN_NAME` = "Super Admin"
-   - `NEXT_PUBLIC_SITE_URL` = `https://your-project.vercel.app`
-5. Deploy
+4. Build & Output Settings: leave default (auto-detected)
+5. Add Environment Variables (all required):
+   | Variable | Value |
+   |----------|-------|
+   | `DATABASE_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true` |
+   | `DIRECT_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[PASSWORD]@aws-0-[region].pooler.supabase.com:5432/postgres` |
+   | `JWT_SECRET` | Generate with `openssl rand -hex 32` |
+   | `ADMIN_EMAIL` | `admin@mdta-miftahululum.sch.id` |
+   | `ADMIN_PASSWORD` | `admin12345` (change after first login) |
+   | `ADMIN_NAME` | `Super Admin` |
+   | `NEXT_PUBLIC_SITE_URL` | `https://your-project.vercel.app` (update after first deploy) |
+6. Click **Deploy**
 
-### Step 5: Initialize Production Database
-After first deploy, run Prisma migration on your Supabase DB:
-```bash
-# Set DATABASE_URL to your Supabase connection string in .env
-bun run db:push
-bun run seed
-```
+### Step 6: Post-Deploy
+- After first successful deploy, update `NEXT_PUBLIC_SITE_URL` to your actual Vercel URL
+- Login at `https://your-project.vercel.app/admin/login`
+- Change the admin password immediately via Settings → Manajemen Admin
 
 ---
 
