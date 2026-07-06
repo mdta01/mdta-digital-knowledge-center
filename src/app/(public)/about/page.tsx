@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import Image from "next/image";
 import { BookOpen, Users, Target, Heart, Sparkles, Award } from "lucide-react";
-import { settingService, dashboardService } from "@/lib/services";
+import { settingService, bookService } from "@/lib/services";
 
 export const metadata: Metadata = {
   title: "Tentang Kami",
@@ -12,16 +12,15 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AboutPage() {
-  const [settings, overview] = await Promise.all([
-    settingService.getAll(),
-    dashboardService.getOverview(),
-  ]);
+  // Sequential queries to avoid connection pool exhaustion
+  const settings = await settingService.getAll();
+  const stats = await bookService.publicStats();
 
-  const stats = [
-    { label: "Koleksi Buku", value: overview.books.published, icon: BookOpen },
-    { label: "Penulis", value: overview.authors, icon: Users },
-    { label: "Kategori", value: overview.categories, icon: Award },
-    { label: "Total Dibaca", value: overview.books.totalViews, icon: Sparkles },
+  const statCards = [
+    { label: "Koleksi Buku", value: stats.published, icon: BookOpen },
+    { label: "Penulis", value: stats.authors, icon: Users },
+    { label: "Kategori", value: stats.categories, icon: Award },
+    { label: "Total Dibaca", value: stats.totalViews, icon: Sparkles },
   ];
 
   return (
@@ -57,7 +56,7 @@ export default async function AboutPage() {
       {/* Stats */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((s) => (
+          {statCards.map((s) => (
             <div key={s.label} className="glass rounded-2xl p-5 text-center">
               <div className="h-12 w-12 mx-auto rounded-2xl bg-primary/10 grid place-items-center mb-3">
                 <s.icon className="h-6 w-6 text-primary" />

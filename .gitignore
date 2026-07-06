@@ -77,3 +77,6 @@ worklog.md
 
 # OS files
 Thumbs.db
+
+# uploads (runtime)
+/upload/

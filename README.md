@@ -77,7 +77,7 @@ Database tables created and demo data seeded via `bun run setup-db`.
 5. Add Environment Variables (all required):
    | Variable | Value |
    |----------|-------|
-   | `DATABASE_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1` |
+   | `DATABASE_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&pool_timeout=30` |
    | `DIRECT_URL` | `postgresql://postgres.tahvikmhjbupxzryofuz:[YOUR-PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres` |
    | `JWT_SECRET` | `mdta-kc-jwt-secret-2026-change-in-production-32chars` (or generate with `openssl rand -hex 32`) |
    | `ADMIN_EMAIL` | `mdtadigital@center` |

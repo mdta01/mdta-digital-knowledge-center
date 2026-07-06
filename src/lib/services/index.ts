@@ -190,6 +190,31 @@ export const bookService = {
       };
     }
   },
+  /**
+   * Lightweight stats for public pages (home, about).
+   * Uses a SINGLE query with count + aggregate combined, instead of 7 separate queries.
+   * This prevents connection pool exhaustion on Vercel serverless.
+   */
+  async publicStats() {
+    try {
+      // Run only 3 essential queries (not 7) — count, sum views, count authors
+      const [bookCount, viewsAgg, authorCount, categoryCount] = await Promise.all([
+        db.book.count({ where: { deletedAt: null, status: "PUBLISHED" } }).catch(() => 0),
+        db.book.aggregate({ _sum: { views: true }, where: { deletedAt: null } }).catch(() => null),
+        db.author.count({ where: { deletedAt: null } }).catch(() => 0),
+        db.category.count({ where: { deletedAt: null } }).catch(() => 0),
+      ]);
+      return {
+        published: bookCount || 0,
+        totalViews: viewsAgg?._sum?.views ?? 0,
+        authors: authorCount || 0,
+        categories: categoryCount || 0,
+      };
+    } catch (e) {
+      console.error("[bookService.publicStats] error:", e);
+      return { published: 0, totalViews: 0, authors: 0, categories: 0 };
+    }
+  },
 };
 
 // ---------- AUTHOR SERVICE ----------
@@ -374,11 +399,20 @@ const DEFAULT_SETTINGS = {
   themeBorderRadius: "16",
 };
 
+// In-memory cache for settings (avoids hitting DB on every page load).
+// TTL: 60 seconds. Settings change rarely, so this is safe.
+let _settingsCache: { data: typeof DEFAULT_SETTINGS; ts: number } | null = null;
+const SETTINGS_CACHE_TTL = 60_000; // 60 seconds
+
 export const settingService = {
   async getAll() {
+    // Return cached if fresh
+    if (_settingsCache && Date.now() - _settingsCache.ts < SETTINGS_CACHE_TTL) {
+      return _settingsCache.data;
+    }
     try {
       const json = await settingRepository.getAllJSON();
-      return {
+      const result = {
         siteName: json[SETTING_KEYS.SITE_NAME] ?? DEFAULT_SETTINGS.siteName,
         siteDescription: json[SETTING_KEYS.SITE_DESCRIPTION] ?? DEFAULT_SETTINGS.siteDescription,
         siteKeywords: json[SETTING_KEYS.SITE_KEYWORDS] ?? DEFAULT_SETTINGS.siteKeywords,
@@ -404,6 +438,9 @@ export const settingService = {
         themeFontBody: json[SETTING_KEYS.THEME_FONT_BODY] ?? DEFAULT_SETTINGS.themeFontBody,
         themeBorderRadius: json[SETTING_KEYS.THEME_BORDER_RADIUS] ?? DEFAULT_SETTINGS.themeBorderRadius,
       };
+      // Cache the result
+      _settingsCache = { data: result, ts: Date.now() };
+      return result;
     } catch (e) {
       console.error("[settingService.getAll] error, using defaults:", e);
       return DEFAULT_SETTINGS;
@@ -442,6 +479,8 @@ export const settingService = {
         settingRepository.set(settingKey, String(values[k] ?? ""))
       )
     );
+    // Invalidate cache
+    _settingsCache = null;
   },
 };
 
